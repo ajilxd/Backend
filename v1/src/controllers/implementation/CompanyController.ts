@@ -1,0 +1,86 @@
+import { Request, Response, NextFunction } from "express";
+import CompanyService from "../../services/implementation/CompanyService";
+import OwnerService from "../../services/implementation/OwnerService";
+import { ICompanyService } from "../../services/interface/ICompanyService";
+import { IOwnerService } from "../../services/interface/IOwnerService";
+import { ICompanyController } from "../interface/ICompanyController";
+import { catchAsync } from "../../errors/catchAsyc";
+import { sendResponse } from "../../utils/sendResponse";
+import { successMap, SuccessType } from "../../constants/response.succesful";
+import AppError from "../../errors/appError";
+import { logger } from "../../utils/logger";
+
+class CompanyController implements ICompanyController {
+  private ownerservice: IOwnerService;
+  private companyservice: ICompanyService;
+  constructor(ownerservice: IOwnerService, companyservice: ICompanyService) {
+    this.ownerservice = ownerservice;
+    this.companyservice = companyservice;
+  }
+
+  registerCompanyHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      logger.info("req body at company registration", req.body);
+      const result = await this.companyservice.createCompany(req.body);
+      return sendResponse(
+        res,
+        successMap[SuccessType.Created].code,
+        successMap[SuccessType.Created].message,
+        result
+      );
+    }
+  );
+
+  updateCompanyHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const updated = await this.companyservice.updateCompany(req.body);
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        updated
+      );
+    }
+  );
+
+  fetchAllCompaniesHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const companies = await this.companyservice.findAllCompanies();
+      if (!companies.length) {
+        return sendResponse(
+          res,
+          successMap[SuccessType.NoContent].code,
+          successMap[SuccessType.NoContent].message
+        );
+      }
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        companies
+      );
+    }
+  );
+
+  getCompanyHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { id } = req.params;
+      if (!id) {
+        throw new AppError(
+          "Ownerid is required for fetching company details",
+          400
+        );
+      }
+      const company = await this.companyservice.findCompanyByOwnerId(id);
+      console.log("company", company);
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        company
+      );
+    }
+  );
+}
+
+export default new CompanyController(OwnerService, CompanyService);
