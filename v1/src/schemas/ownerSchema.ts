@@ -2,6 +2,8 @@ import { Schema, model } from "mongoose";
 import { IOwner } from "../entities/IOwner";
 import bcrypt from "bcryptjs";
 import AppError from "../errors/appError";
+import { string } from "joi";
+import { UserRole } from "../utils/JWT";
 
 const OwnerSchema: Schema<IOwner> = new Schema(
   {
@@ -12,6 +14,11 @@ const OwnerSchema: Schema<IOwner> = new Schema(
     isBlocked: { type: Boolean, default: false },
     stripe_customer_id: { type: String, required: false },
     refreshToken: { type: String, required: false },
+    role: {
+      type: String,
+      enum: Object.values(UserRole),
+      default: UserRole.Owner,
+    },
     subscription: {
       type: {
         name: { type: String, required: false },

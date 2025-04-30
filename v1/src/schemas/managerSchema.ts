@@ -1,5 +1,6 @@
 import { Schema, model, Types } from "mongoose";
 import { IManager } from "../entities/IManager";
+import { UserRole } from "../utils/JWT";
 const ManagerSchema: Schema<IManager> = new Schema(
   {
     name: { type: String, required: true },
@@ -8,7 +9,11 @@ const ManagerSchema: Schema<IManager> = new Schema(
     spaces: [{ type: Schema.Types.ObjectId, ref: "Space", required: false }],
     ownerId: { type: Schema.Types.ObjectId, ref: "Owner", required: true },
     isBlocked: { type: Boolean, default: false, required: false },
-    role: { type: String, default: "manager" },
+    role: {
+      type: String,
+      enum: Object.values(UserRole),
+      default: UserRole.Manager,
+    },
     refreshToken: { type: String, required: false },
   },
   { timestamps: true }

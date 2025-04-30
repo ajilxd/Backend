@@ -6,7 +6,7 @@ export const ownerRouter = Router();
 
 ownerRouter.post(
   "/register",
-  authMiddleware(["owner"]),
+
   OwnerController.registerOwner
 );
 ownerRouter.post("/login", OwnerController.loginUser);
@@ -16,13 +16,53 @@ ownerRouter.post("/resend-otp", OwnerController.resendOtphandler);
 ownerRouter.post("/google", OwnerController.handleGoogleClick);
 ownerRouter.post("/forget-password", OwnerController.forgotPasswordHandler);
 ownerRouter.post("/reset-password", OwnerController.resetPasswordHandler);
-ownerRouter.post("/managers", OwnerController.addManagerHandler);
-ownerRouter.get("/managers/:id", OwnerController.getAllManagersHandler);
-ownerRouter.patch("/managers/:id", OwnerController.toggleManagerStatusHandler);
-ownerRouter.get("/subscriptions", OwnerController.showSubscriptionsHandler);
-ownerRouter.get("/owners/:id", OwnerController.showOwnersHandler);
-ownerRouter.get("/subscription/:id", OwnerController.getOwnerSubscription);
-ownerRouter.get("/invoices/:id", OwnerController.fetchOwnerInvoices);
-ownerRouter.get("/company/:id", CompanyController.getCompanyHandler);
-ownerRouter.put("/company", CompanyController.updateCompanyHandler);
-ownerRouter.post("/company", CompanyController.registerCompanyHandler);
+ownerRouter.post(
+  "/managers",
+  authMiddleware(["owner"]),
+  OwnerController.addManagerHandler
+);
+ownerRouter.get(
+  "/managers/:id",
+  authMiddleware(["owner"]),
+  OwnerController.getAllManagersHandler
+);
+ownerRouter.patch(
+  "/managers/:id",
+  authMiddleware(["owner"]),
+  OwnerController.toggleManagerStatusHandler
+);
+ownerRouter.get(
+  "/subscriptions",
+  authMiddleware(["owner"]),
+  OwnerController.showSubscriptionsHandler
+);
+ownerRouter.get(
+  "/owners/:id",
+  authMiddleware(["owner"]),
+  OwnerController.showOwnersHandler
+);
+ownerRouter.get(
+  "/subscription/:id",
+  authMiddleware(["owner"]),
+  OwnerController.getOwnerSubscription
+);
+ownerRouter.get(
+  "/invoices/:id",
+  authMiddleware(["owner"]),
+  OwnerController.fetchOwnerInvoices
+);
+ownerRouter.get(
+  "/company/:id",
+  authMiddleware(["owner"]),
+  CompanyController.getCompanyHandler
+);
+ownerRouter.put(
+  "/company",
+  authMiddleware(["owner"]),
+  CompanyController.updateCompanyHandler
+);
+ownerRouter.post(
+  "/company",
+  authMiddleware(["owner"]),
+  CompanyController.registerCompanyHandler
+);

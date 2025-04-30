@@ -1,4 +1,5 @@
 import { ObjectId, Document } from "mongoose";
+import { UserRole } from "../utils/JWT";
 
 export interface IOwner extends Document {
   _id: ObjectId;
@@ -11,6 +12,7 @@ export interface IOwner extends Document {
   owner?: string;
   stripe_customer_id?: string;
   refreshToken?: string;
+  role: UserRole;
 
   subscription?: {
     name?: string;

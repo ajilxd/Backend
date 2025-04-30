@@ -1,5 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import { IUser } from "../entities/IUser";
+import { UserRole } from "../utils/JWT";
+
 const UserSchema: Schema<IUser> = new Schema(
   {
     name: { type: String, required: true },
@@ -8,7 +10,11 @@ const UserSchema: Schema<IUser> = new Schema(
     spaceId: { type: Schema.Types.ObjectId, ref: "Space", required: false },
     isAvailable: { type: Boolean, default: true },
     isBlocked: { type: Boolean, default: false },
-    role: { type: String, default: "user" },
+    role: {
+      type: String,
+      enum: Object.values(UserRole),
+      default: UserRole.User,
+    },
     managerId: { type: Schema.Types.ObjectId, ref: "Manager", required: true },
     refreshToken: { type: String, required: false },
     ownerId: { type: String, required: false },

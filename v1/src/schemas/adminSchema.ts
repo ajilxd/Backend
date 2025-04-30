@@ -1,6 +1,6 @@
 import { Schema, model } from "mongoose";
 import { IAdmin } from "../entities/IAdmin";
-import { required } from "joi";
+import { UserRole } from "../utils/JWT";
 
 const AdminSchema: Schema<IAdmin> = new Schema(
   {
@@ -8,6 +8,11 @@ const AdminSchema: Schema<IAdmin> = new Schema(
     password: { type: String, required: true },
     refreshToken: {
       type: String,
+    },
+    role: {
+      type: String,
+      enum: Object.values(UserRole),
+      default: UserRole.Admin,
     },
   },
   { timestamps: true }

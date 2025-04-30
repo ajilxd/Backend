@@ -1,15 +1,16 @@
 import { ObjectId, Document } from "mongoose";
+import { UserRole } from "../utils/JWT";
 
 export interface IUser extends Document {
   _id: ObjectId;
-  name: String;
-  email: String;
-  image?: String;
+  name: string;
+  email: string;
+  image?: string;
   managerId: ObjectId;
-  spaceId: String;
+  spaceId: ObjectId;
   isAvailable: Boolean;
   isBlocked: Boolean;
-  role: string;
+  role: UserRole;
   refreshToken?: string;
   ownerId?: string;
 }

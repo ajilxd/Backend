@@ -21,6 +21,8 @@ import { logger } from "../../utils/logger";
 import { IOwner } from "../../entities/IOwner";
 import { plainToInstance } from "class-transformer";
 import { ownerLoginResponseDto } from "../../dtos/owner/owner.dto";
+import { ref } from "joi";
+import config from "../../config";
 
 class OwnerController implements IOwnerController {
   private OwnerService: IOwnerService;
@@ -110,7 +112,7 @@ class OwnerController implements IOwnerController {
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       const { email, password } = req.body;
       const validUser = await this.OwnerService.checkOwner(email, password);
-      console.log(validUser);
+
       if (!validUser.isVerified)
         throw new AppError(
           "Email should be verified",
@@ -122,17 +124,17 @@ class OwnerController implements IOwnerController {
       }
 
       if (validUser) {
-        const parsedData = plainToInstance(ownerLoginResponseDto, validUser, {
-          excludeExtraneousValues: true,
-        });
         const { accessToken, refreshToken } =
           await this.OwnerService.authenticateOwner(email, password);
-
+        console.log({ accessToken, refreshToken });
         res
           .status(200)
           .cookie("ownerRefreshToken", refreshToken, {
             httpOnly: true,
             maxAge: 7 * 24 * 60 * 60 * 1000,
+            secure: false,
+            sameSite: "lax",
+            path: "/",
           })
           .json({ accessToken, data: validUser });
       }
@@ -141,10 +143,13 @@ class OwnerController implements IOwnerController {
 
   logoutUser = catchAsync(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-      res.cookie("ownerRefreshToken", "", {
+      res.clearCookie("ownerRefreshToken", {
         httpOnly: true,
-        expires: new Date(0),
+        secure: false,
+        sameSite: "lax",
+        path: "/",
       });
+
       return sendResponse(
         res,
         successMap[SuccessType.Accepted].code,
@@ -186,6 +191,8 @@ class OwnerController implements IOwnerController {
           .cookie("ownerRefreshToken", refreshToken, {
             httpOnly: true,
             maxAge: 7 * 24 * 60 * 60 * 1000,
+            sameSite: "lax",
+            secure: false,
           });
         return res.json({ accessToken, data: accountData });
       } else {
@@ -216,9 +223,11 @@ class OwnerController implements IOwnerController {
 
         const { accessToken, refreshToken } =
           await this.OwnerService.authenticateOwner(email, "", true);
-        res.cookie("refreshToken", refreshToken, {
+        res.cookie("ownerRefreshToken", refreshToken, {
           httpOnly: true,
           maxAge: 7 * 24 * 60 * 60 * 1000,
+          sameSite: "lax",
+          secure: false,
         });
         return res.json({ accessToken, data: updatedOwner });
       }

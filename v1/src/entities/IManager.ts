@@ -1,4 +1,5 @@
 import { ObjectId, Document } from "mongoose";
+import { UserRole } from "../utils/JWT";
 
 export interface IManager extends Document {
   _id: ObjectId;
@@ -10,6 +11,6 @@ export interface IManager extends Document {
   isBlocked?: Boolean;
   createdAt: Date;
   updatedAt: Date;
-  role: string;
+  role: UserRole;
   refreshToken?: string;
 }
