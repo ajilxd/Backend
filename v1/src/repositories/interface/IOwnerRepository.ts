@@ -1,7 +1,6 @@
 import { ObjectId } from "mongoose";
 import { IOwner } from "../../entities/IOwner";
 import { IBaseRepository } from "./IBaserRepository";
-import { UpdateResult } from "mongodb";
 
 export interface IOwnerRepository extends IBaseRepository<IOwner> {
   blockById(id: ObjectId): Promise<IOwner | null>;

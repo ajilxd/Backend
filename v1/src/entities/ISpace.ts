@@ -1,32 +1,57 @@
 import { ObjectId, Document } from "mongoose";
 
-type MemberRole = "supermanager" | "manager" | "member" | "viewer";
+export type MemberRoleType = "supermanager" | "manager" | "member" | "viewer";
 
-type TeamMember = {
+export const MemberRole = [
+  "supermanager",
+  "manager",
+  "member",
+  "viewer",
+] as const;
+
+export type DesignationRoleType = "developer" | "tester" | "designer";
+
+export const DesignationRole = ["developer", "tester", "designer"] as const;
+
+export type TeamMemberStatusType = "active" | "pending" | "removed";
+
+export const TeamMemberStatus = ["active", "pending", "removed"] as const;
+
+export type SpaceStatusType = "active" | "archived" | "deleted";
+
+export const SpaceStatus = ["active", "archived", "deleted"] as const;
+
+export type SpaceVisibilityType = "private" | "team" | "public";
+
+export const SpaceVisibility = ["private", "team", "public"] as const;
+
+export type TeamMember = {
   userId: ObjectId;
-  role: MemberRole;
+  role: MemberRoleType;
   joinedAt: Date;
-  invitedBy?: ObjectId;
-  status: "active" | "pending" | "removed";
+  invitedBy: ObjectId;
+  status: TeamMemberStatusType;
+  designation: DesignationRoleType;
 };
 
-type Team = {
+export type Team = {
   members: TeamMember[];
 };
 
 export interface ISpace extends Document {
   _id: ObjectId;
   name: string;
-  description?: string;
+  description: string;
   team: Team;
 
   createdBy: ObjectId;
+  spaceOwner: ObjectId;
   owner: ObjectId;
   createdAt: Date;
   updatedAt: Date;
 
-  visibility: "private" | "team" | "public";
-  status: "active" | "archived" | "deleted";
+  visibility: SpaceVisibilityType;
+  status: SpaceStatusType;
 
-  tags?: string[];
+  tags: [string];
 }

@@ -2,6 +2,8 @@ import mongoose, { Schema } from "mongoose";
 import { IUser } from "../entities/IUser";
 import { UserRole } from "../utils/JWT";
 
+const role = ["developer", "tester", "designer"];
+
 const UserSchema: Schema<IUser> = new Schema(
   {
     name: { type: String, required: true },
@@ -12,7 +14,7 @@ const UserSchema: Schema<IUser> = new Schema(
     isBlocked: { type: Boolean, default: false },
     role: {
       type: String,
-      enum: Object.values(UserRole),
+      enum: role,
       default: UserRole.User,
     },
     managerId: { type: Schema.Types.ObjectId, ref: "Manager", required: true },
