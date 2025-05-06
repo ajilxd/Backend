@@ -16,6 +16,8 @@ import AuthService from "../../services/implementation/AuthService";
 import { IOwnerService } from "../../services/interface/IOwnerService";
 import OwnerService from "../../services/implementation/OwnerService";
 import { logger } from "../../utils/logger";
+import { ICompanyService } from "../../services/interface/ICompanyService";
+import CompanyService from "../../services/implementation/CompanyService";
 
 class AuthController implements IAuthController {
   private OTPService: IOTPService;
@@ -23,19 +25,22 @@ class AuthController implements IAuthController {
   private UserService: IUserService;
   private AuthService: IAuthService;
   private OwnerService: IOwnerService;
+  private CompanyService: ICompanyService;
 
   constructor(
     OTPService: IOTPService,
     ManagerService: IManagerService,
     UserService: IUserService,
     AuthService: IAuthService,
-    OwnerService: IOwnerService
+    OwnerService: IOwnerService,
+    CompanyService: ICompanyService
   ) {
     this.OTPService = OTPService;
     this.ManagerService = ManagerService;
     this.UserService = UserService;
     this.AuthService = AuthService;
     this.OwnerService = OwnerService;
+    this.CompanyService = CompanyService;
   }
 
   sendOtp = catchAsync(
@@ -88,6 +93,21 @@ class AuthController implements IAuthController {
         const owner = await this.OwnerService.fetchOwnerById(
           "" + manager.ownerId
         );
+        if (!owner) {
+          throw new AppError(
+            "failed fetching owner details at manager login",
+            500
+          );
+        }
+        const company = await this.CompanyService.findCompanyByOwnerId(
+          "" + owner._id
+        );
+        if (!company) {
+          throw new AppError(
+            "failed fetching company details at manager login",
+            500
+          );
+        }
         if (manager.isBlocked) {
           return sendResponse(res, 401, "Your account is blocked");
         }
@@ -108,6 +128,8 @@ class AuthController implements IAuthController {
           ownerName: owner?.name,
           ownerSubscription: owner?.subscription,
           role: "manager",
+          companyId: company?._id,
+          companyName: company?.companyName,
         };
         return res
           .status(200)
@@ -158,9 +180,9 @@ class AuthController implements IAuthController {
             })
             .json({ accessToken, data: result });
         }
+      } else {
+        throw new AppError("User not found", 404);
       }
-
-      throw new AppError("User not found", 404);
     }
   );
 
@@ -186,5 +208,6 @@ export default new AuthController(
   ManagerService,
   UserService,
   AuthService,
-  OwnerService
+  OwnerService,
+  CompanyService
 );

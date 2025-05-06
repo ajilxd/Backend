@@ -1,7 +1,19 @@
 import { ITask } from "../../entities/ITask";
+import AppError from "../../errors/appError";
 import { Task } from "../../schemas/taskSchema";
-import { ITaskRepository } from "../interface/ITask";
+import { ITaskRepository } from "../interface/ITaskRepository";
 import { BaseRepository } from "./BaseRepository";
+
+export type TaskQueryType = {
+  taskId?: string;
+  spaceId?: string;
+  assignee?: string;
+  creatorId?: string;
+};
+
+export type TaskUpdateQueryType = {
+  status?: string;
+};
 
 export class TaskRepository
   extends BaseRepository<ITask>
@@ -10,4 +22,27 @@ export class TaskRepository
   constructor() {
     super(Task);
   }
+
+  async getTaskByQuery(query: TaskQueryType): Promise<ITask[]> {
+    const result = await Task.find(query);
+    if (!result.length) {
+      throw new AppError("No space found", 404);
+    }
+    return result;
+  }
+
+  async updateTaskByQuery(
+    taskId: string,
+    updateByQuery: TaskUpdateQueryType
+  ): Promise<ITask> {
+    const updated = await Task.findOneAndUpdate(
+      { _id: taskId },
+      updateByQuery,
+      { new: true }
+    );
+
+    return updated!;
+  }
 }
+
+export default new TaskRepository();

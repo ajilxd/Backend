@@ -39,3 +39,18 @@ export type OwnerSubscriptionDetailsType = {
   features?: Array<string>;
   amount?: string;
 };
+
+//Types for spaces
+
+export type SpaceQueryType = {
+  owner?: string;
+  _id?: string;
+  companyId?: string;
+  managers?: string;
+};
+
+export type updateSpaceByQueryType = {
+  status?: string;
+  visibility?: string;
+  managers?: string;
+};

@@ -38,6 +38,12 @@ export type Team = {
   members: TeamMember[];
 };
 
+export type ManagersType = {
+  managerId: string;
+  managerImage: string;
+  managerName: string;
+};
+
 export interface ISpace extends Document {
   _id: ObjectId;
   name: string;
@@ -45,7 +51,6 @@ export interface ISpace extends Document {
   team: Team;
 
   createdBy: ObjectId;
-  spaceOwner: ObjectId;
   owner: ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -53,5 +58,9 @@ export interface ISpace extends Document {
   visibility: SpaceVisibilityType;
   status: SpaceStatusType;
 
+  companyName: string;
+  companyId: ObjectId;
+
   tags: [string];
+  managers: ManagersType[];
 }

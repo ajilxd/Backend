@@ -19,10 +19,6 @@ import { sendResponse } from "../../utils/sendResponse";
 import { successMap, SuccessType } from "../../constants/response.succesful";
 import { logger } from "../../utils/logger";
 import { IOwner } from "../../entities/IOwner";
-import { plainToInstance } from "class-transformer";
-import { ownerLoginResponseDto } from "../../dtos/owner/owner.dto";
-import { ref } from "joi";
-import config from "../../config";
 
 class OwnerController implements IOwnerController {
   private OwnerService: IOwnerService;
@@ -288,7 +284,7 @@ class OwnerController implements IOwnerController {
     // dto
     async (req: Request, res: Response, next: NextFunction) => {
       console.log(req.body);
-      const { ownerId, email, name } = req.body;
+      const { ownerId } = req.body;
 
       if (!ownerId) {
         throw new AppError(

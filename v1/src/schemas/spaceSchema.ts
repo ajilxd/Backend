@@ -6,17 +6,10 @@ import {
   SpaceVisibility,
   TeamMemberStatus,
 } from "../entities/ISpace";
-import { MemberRole } from "../entities/ISpace";
 
 const TeamMemberSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, required: true, ref: "User" },
-    role: {
-      type: String,
-      enum: MemberRole,
-      required: true,
-      default: MemberRole[0],
-    },
     designation: {
       type: String,
       enum: DesignationRole,
@@ -30,7 +23,7 @@ const TeamMemberSchema = new Schema(
     invitedBy: {
       type: Schema.Types.ObjectId,
       required: true,
-      ref: "Owner",
+      ref: "Manager",
     },
     status: {
       type: String,
@@ -38,11 +31,21 @@ const TeamMemberSchema = new Schema(
       required: true,
       default: TeamMemberStatus[0],
     },
+    memberName: {
+      type: String,
+      required: true,
+    },
   },
   {
     _id: false,
   }
 );
+
+const ManagersSchema = new Schema({
+  managerId: Schema.Types.ObjectId,
+  managerImage: String,
+  managerName: String,
+});
 
 const SpaceSchema: Schema<ISpace> = new Schema(
   {
@@ -55,10 +58,7 @@ const SpaceSchema: Schema<ISpace> = new Schema(
       type: Schema.Types.ObjectId,
       required: true,
     },
-    spaceOwner: {
-      type: Schema.Types.ObjectId,
-      required: true,
-    },
+
     owner: {
       type: Schema.Types.ObjectId,
       required: true,
@@ -77,6 +77,20 @@ const SpaceSchema: Schema<ISpace> = new Schema(
     },
     tags: {
       type: [String],
+      required: true,
+      default: [],
+    },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Company",
+    },
+    companyName: {
+      type: String,
+      required: true,
+    },
+    managers: {
+      type: [ManagersSchema],
       required: true,
       default: [],
     },

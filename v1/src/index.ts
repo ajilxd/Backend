@@ -17,6 +17,7 @@ import { refreshTokenHandler } from "./controllers/refreshTokenHandler";
 import { httpLoggerMiddleware, logger } from "./utils/logger";
 import { authRouter } from "./routes/authRoute";
 import { userRouter } from "./routes/userRoute";
+import { spaceRouter } from "./routes/spaceRoute";
 
 const app = express();
 
@@ -42,6 +43,8 @@ app.use("/api/v1/manager", managerRouter);
 app.use("/api/v1/payment", paymentRouter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/space", spaceRouter);
+app.use("/api/v1/task", managerRouter);
 
 app.post("/api/v1/refresh-token", refreshTokenHandler);
 

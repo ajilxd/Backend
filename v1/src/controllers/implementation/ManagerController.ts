@@ -85,6 +85,7 @@ class managerController implements IManagerController {
         const user = await this.UserService.create({
           ...req.body,
           ownerId: owner._id,
+          companyId: manager.companyId,
         });
         return res.status(200).json({ success: true, data: user });
       }

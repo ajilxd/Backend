@@ -9,7 +9,7 @@ const UserSchema: Schema<IUser> = new Schema(
     name: { type: String, required: true },
     email: { type: String, required: true },
     image: { type: String },
-    spaceId: { type: Schema.Types.ObjectId, ref: "Space", required: false },
+    spaces: { type: [String], required: false, default: [] },
     isAvailable: { type: Boolean, default: true },
     isBlocked: { type: Boolean, default: false },
     role: {
@@ -19,7 +19,8 @@ const UserSchema: Schema<IUser> = new Schema(
     },
     managerId: { type: Schema.Types.ObjectId, ref: "Manager", required: true },
     refreshToken: { type: String, required: false },
-    ownerId: { type: String, required: false },
+    ownerId: { type: Schema.Types.ObjectId, required: false },
+    companyId: { type: Schema.Types.ObjectId, required: true },
   },
   {
     timestamps: true,

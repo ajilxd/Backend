@@ -1,7 +1,7 @@
 import { IManager } from "../../entities/IManager";
 
 export interface IManagerService {
-  createManager(managerData: any): Promise<IManager>;
+  createManager(managerData: Partial<IManager>): Promise<IManager>;
   findManagerByEmail(email: string): Promise<IManager>;
   getManagers(id: string): Promise<IManager[]>;
   updateManager(

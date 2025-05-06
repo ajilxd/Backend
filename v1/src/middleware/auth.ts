@@ -30,7 +30,8 @@ const authMiddleware = (allowedRoles: string[] = []) => {
         throw new AppError("No jwt secrets found", 500);
       }
       const payload = jwt.verify(token, config.GENERAL_ACCESS_SECRET);
-
+      logger.info("data from accesstoken");
+      console.log(payload);
       req.user = payload;
 
       if (

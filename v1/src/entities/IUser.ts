@@ -7,10 +7,11 @@ export interface IUser extends Document {
   email: string;
   image?: string;
   managerId: ObjectId;
-  spaceId: ObjectId;
+  spaces: string[];
   isAvailable: Boolean;
   isBlocked: Boolean;
   role: UserRole;
   refreshToken?: string;
-  ownerId?: string;
+  ownerId: ObjectId;
+  companyId: ObjectId;
 }
