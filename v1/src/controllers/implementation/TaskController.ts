@@ -7,6 +7,7 @@ import { sendResponse } from "../../utils/sendResponse";
 import AppError from "../../errors/appError";
 import { errorMap, ErrorType } from "../../constants/response.failture";
 import { catchAsync } from "../../errors/catchAsyc";
+import mongoose from "mongoose";
 
 class TaskController implements ITaskController {
   private TaskService: ITaskService;
@@ -16,6 +17,7 @@ class TaskController implements ITaskController {
 
   addTaskHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
+      console.log(req.body);
       const result = await this.TaskService.createTask(req.body);
       if (result) {
         return sendResponse(res, 201, "Task created succesfully", result);
@@ -27,10 +29,11 @@ class TaskController implements ITaskController {
 
   editTaskHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { taskId } = req.params;
+      console.log("req body at updating task", req.body);
+      const { taskId } = req.body;
       const updated = await this.TaskService.updateTask(taskId, req.body);
       if (updated) {
-        return sendResponse(res, 201, "Task updated succesfully", updated);
+        return sendResponse(res, 200, "Task updated succesfully", updated);
       } else {
         throw new AppError("Failed updating task", 500);
       }
@@ -39,6 +42,7 @@ class TaskController implements ITaskController {
 
   updateTaskByField = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
+      console.log(req.body);
       const { taskId } = req.params;
       const { updateType, updateData } = req.body;
       let updated;
@@ -80,7 +84,7 @@ class TaskController implements ITaskController {
 
   getTasksByField = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const field = req.query.field;
+      let field = req.query.field;
       const value = req.query.value;
 
       if (typeof field !== "string" || typeof value !== "string") {
@@ -90,13 +94,20 @@ class TaskController implements ITaskController {
         );
       }
 
-      const allowedFields = ["spaceId", "assignee", "creatorId"];
+      const allowedFields = ["spaceId", "userId", "creatorId", "taskId"];
       if (!allowedFields.includes("" + field)) {
         throw new AppError("Invalid query", 400);
       }
 
-      const query: Record<string, string> = {};
-      query[field] = value;
+      if (field === "userId") {
+        field = "assignee.id";
+      }
+
+      if (field === "taskId") {
+        field = "_id";
+      }
+      const query: Record<string, mongoose.Types.ObjectId> = {};
+      query[field] = new mongoose.Types.ObjectId(value);
       const result = await this.TaskService.getTasksQuery(query);
       if (result) {
         return sendResponse(
@@ -106,7 +117,7 @@ class TaskController implements ITaskController {
           result
         );
       } else {
-        throw new AppError("Failed fetching tasks", 500);
+        throw new AppError("No tasks found", 404);
       }
     }
   );

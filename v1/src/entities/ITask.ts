@@ -24,6 +24,13 @@ export const TaskStatus = [
   "cancelled",
 ];
 
+type AssigneeType = {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+};
+
 export const TaskPriority = ["low", "medium", "high"];
 
 export type TaskPriorityType = "low" | "medium" | "high";
@@ -38,7 +45,7 @@ export interface ITask extends Document {
 
   name: string;
   description: string;
-  assignee: ObjectId;
+  assignee: AssigneeType;
   priority: TaskPriorityType;
   status: TaskStatusType;
   tags: string[];

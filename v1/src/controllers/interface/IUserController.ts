@@ -6,4 +6,16 @@ export interface IUserController {
     res: Response,
     next: NextFunction
   ): Promise<void> | void;
+
+  getUsersByFieldHandler(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> | void;
+
+  updateUserHandler(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> | void;
 }

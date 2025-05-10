@@ -1,9 +1,9 @@
 import { Router } from "express";
 import TaskController from "../controllers/implementation/TaskController";
 
-export const TaskRouter = Router();
+export const taskRouter = Router();
 
-TaskRouter.post("/", TaskController.addTaskHandler);
-TaskRouter.put("/", TaskController.editTaskHandler);
-TaskRouter.get("/", TaskController.getTasksByField);
-TaskRouter.put("/:taskId", TaskController.updateTaskByField);
+taskRouter.post("/", TaskController.addTaskHandler);
+taskRouter.put("/", TaskController.editTaskHandler);
+taskRouter.get("/", TaskController.getTasksByField);
+taskRouter.put("/:taskId", TaskController.updateTaskByField);

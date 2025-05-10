@@ -1,4 +1,4 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types } from "mongoose";
 import { IUser } from "../entities/IUser";
 import { UserRole } from "../utils/JWT";
 
@@ -9,7 +9,7 @@ const UserSchema: Schema<IUser> = new Schema(
     name: { type: String, required: true },
     email: { type: String, required: true },
     image: { type: String },
-    spaces: { type: [String], required: false, default: [] },
+    spaces: { type: [Schema.Types.ObjectId], required: false, default: [] },
     isAvailable: { type: Boolean, default: true },
     isBlocked: { type: Boolean, default: false },
     role: {

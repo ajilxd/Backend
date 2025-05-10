@@ -1,7 +1,9 @@
 import { IUser } from "../../entities/IUser";
 import { IUserRepository } from "../../repositories/interface/IUserRepository";
 import { IUserService } from "../../services/interface/IUserService";
-import UserRepository from "../../repositories/implementations/UserRepository";
+import UserRepository, {
+  UserQueryType,
+} from "../../repositories/implementations/UserRepository";
 import AppError from "../../errors/appError";
 import { errorMap, ErrorType } from "../../constants/response.failture";
 import { successMap, SuccessType } from "../../constants/response.succesful";
@@ -95,6 +97,11 @@ class UserService implements IUserService {
         errorMap[ErrorType.NotFound].code
       );
     }
+  }
+
+  async getUsersQuery(query: UserQueryType): Promise<IUser[]> {
+    const result = await this.userRepository.getUsersByQuery(query);
+    return result;
   }
 }
 

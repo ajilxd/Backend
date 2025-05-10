@@ -1,6 +1,18 @@
 import { Schema, model } from "mongoose";
 import { ITask, TaskPriority, TaskStatus } from "../entities/ITask";
 
+const AssigneeSchema = new Schema(
+  {
+    id: { type: Schema.Types.ObjectId, ref: "User" },
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    avatarUrl: { type: String },
+  },
+  {
+    _id: false,
+  }
+);
+
 const TaskSchema: Schema<ITask> = new Schema(
   {
     spaceId: { type: Schema.Types.ObjectId, ref: "Space", required: true },
@@ -10,7 +22,7 @@ const TaskSchema: Schema<ITask> = new Schema(
 
     name: { type: String, required: true },
     description: { type: String, required: true },
-    assignee: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    assignee: [AssigneeSchema],
     priority: {
       type: String,
       enum: TaskPriority,
