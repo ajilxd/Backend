@@ -2,8 +2,11 @@ import { ObjectId, Document } from "mongoose";
 
 export interface IChat extends Document {
   _id: ObjectId;
-  sender: ObjectId;
-  text: string;
-  createdAt: string;
-  updatedAt: string;
+  senderId: string;
+  senderName: string;
+  senderImageUrl: string;
+  room: string;
+  content: string;
+  createdAt: {};
+  updatedAt: Date;
 }

@@ -1,10 +1,12 @@
 import { Schema, model } from "mongoose";
 import { IChat } from "../entities/IChat";
-
 const ChatSchema: Schema<IChat> = new Schema(
   {
-    sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    text: { type: String, required: true },
+    senderId: String,
+    senderName: String,
+    senderImageUrl: String,
+    room: String,
+    content: String,
   },
   { timestamps: true }
 );

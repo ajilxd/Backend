@@ -2,7 +2,9 @@ import AWS from "aws-sdk";
 import { NextFunction, Request, Response } from "express";
 
 const s3 = new AWS.S3({
+  region: "eu-north-1",
   endpoint: new AWS.Endpoint("s3.eu-north-1.amazonaws.com"),
+  signatureVersion: "v4",
 });
 
 export const getPresignedUploadUrl = async (
