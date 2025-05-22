@@ -27,6 +27,9 @@ import { documentRouter } from "./routes/docRoute";
 import { getPresignedUploadUrl } from "./controllers/s3Controller";
 import { registerSocketHandlers } from "./controllers/socketController";
 import { chatRouter } from "./routes/chatRoute";
+import { meetingRouter } from "./routes/meetingRoute";
+import { createWorker } from "./controllers/mediasoupHandler";
+import { registerPeerSocketHandlers } from "./controllers/registerPeerSocketHandlers";
 
 const app = express();
 
@@ -46,6 +49,13 @@ const io = new Server(server, {
     origin: "http://localhost:5173",
     methods: ["GET", "POST"],
   },
+});
+
+const peerNamespace = io.of("/peers");
+
+peerNamespace.on("connection", (socket) => {
+  console.log("Peer connected:", socket.id);
+  registerPeerSocketHandlers(peerNamespace, socket);
 });
 
 io.on("connection", (socket) => {
@@ -68,6 +78,7 @@ app.use("/api/v1/space", spaceRouter);
 app.use("/api/v1/task", taskRouter);
 app.use("/api/v1/document", documentRouter);
 app.use("/api/v1/chat", chatRouter);
+app.use("/api/v1/meeting", meetingRouter);
 
 app.post("/api/v1/refresh-token", refreshTokenHandler);
 app.post("/api/v1/stripe/webhooks", handleWebhook);
@@ -76,8 +87,18 @@ app.get("/api/v1/s3/presign", getPresignedUploadUrl);
 
 app.use(errorHandler);
 
-connectMongodb();
+async function init() {
+  try {
+    await connectMongodb();
+    await createWorker();
 
-server.listen(config.PORT, () => {
-  logger.info(` Server running at http://localhost:${config.PORT}`);
-});
+    server.listen(config.PORT, () => {
+      logger.info(`🚀 Server running at http://localhost:${config.PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ Startup error:", err);
+    process.exit(1);
+  }
+}
+
+init();

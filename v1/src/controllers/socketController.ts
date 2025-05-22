@@ -1,5 +1,4 @@
 import { Server, Socket } from "socket.io";
-import { Chat } from "../schemas/chatSchema";
 import ChatRepository from "../repositories/implementations/ChatRepository";
 
 interface CustomSocket extends Socket {
@@ -13,11 +12,14 @@ type SocketInfoType = {
   rooms: Set<string>;
   sockets: Set<string>;
   lastSeen?: Date;
+  senderName?: string;
+  senderImageUrl?: string;
 };
 
 type RoomSocketInfo = {
   userId: string;
   lastSeen: string;
+  typing?: boolean;
 };
 
 const userSocketMap: Record<string, SocketInfoType> = {};
@@ -25,12 +27,15 @@ const roomSocketMap: Record<string, RoomSocketInfo[]> = {};
 
 export function registerSocketHandlers(io: Server, socket: CustomSocket) {
   socket.on("user-connected", (data) => {
+    console.log("data from user disconnected", data);
     const { userId } = data;
     if (!userSocketMap[userId]) {
       userSocketMap[userId] = {
         rooms: new Set(),
         sockets: new Set(),
         lastSeen: new Date(),
+        senderImageUrl: data.senderImageUrl,
+        senderName: data.senderName,
       };
     }
 
@@ -67,7 +72,7 @@ export function registerSocketHandlers(io: Server, socket: CustomSocket) {
       data
     );
     await ChatRepository.create(data);
-    io.to(data.room).emit("receive-message", data);
+    socket.to(data.room).emit("receive-message", data);
   });
 
   socket.on("disconnect", () => {
@@ -93,6 +98,7 @@ export function registerSocketHandlers(io: Server, socket: CustomSocket) {
 
   socket.on("user-disconnect", (data) => {
     const { userId } = data;
+    console.log("from user disconnected ", data);
     if (userId && userSocketMap[userId]) {
       for (const room of userSocketMap[userId].rooms) {
         roomSocketMap[room] = roomSocketMap[room].filter(
@@ -102,6 +108,52 @@ export function registerSocketHandlers(io: Server, socket: CustomSocket) {
       }
       delete userSocketMap[userId];
     }
+  });
+
+  socket.on("typing", (data) => {
+    console.log("data from typing", data);
+    const { userId, room } = data;
+    if (userId && roomSocketMap[room]) {
+      roomSocketMap[room].map((i) => {
+        if (i.userId === userId) {
+          i.typing = true;
+        }
+      });
+    }
+
+    const typingFiltered = roomSocketMap[room]
+      .filter((i) => i.typing === true)
+      .map((i) => {
+        return {
+          ...i,
+          senderName: userSocketMap[i.userId]?.senderName,
+          senderImageUrl: userSocketMap[i.userId]?.senderImageUrl,
+        };
+      });
+    socket.to(room).emit("typing", typingFiltered);
+  });
+
+  socket.on("stop-typing", (data) => {
+    console.log("data from stop typing", data);
+    const { userId, room } = data;
+    if (userId && roomSocketMap[room]) {
+      roomSocketMap[room].map((i) => {
+        if (i.userId === userId) {
+          i.typing = false;
+        }
+      });
+    }
+
+    const typingFiltered = roomSocketMap[room]
+      .filter((i) => i.typing === true)
+      .map((i) => {
+        return {
+          ...i,
+          senderName: userSocketMap[i.userId]?.senderName,
+          senderImageUrl: userSocketMap[i.userId]?.senderImageUrl,
+        };
+      });
+    socket.to(room).emit("stop-typing", typingFiltered);
   });
 }
 
