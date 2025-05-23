@@ -66,4 +66,10 @@ export interface IOwnerController {
     res: Response,
     next: NextFunction
   ): Promise<void> | void;
+
+  updateProfile: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 }

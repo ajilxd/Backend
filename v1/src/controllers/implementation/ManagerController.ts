@@ -14,7 +14,8 @@ import { sendResponse } from "../../utils/sendResponse";
 import { successMap, SuccessType } from "../../constants/response.succesful";
 import { IOwnerService } from "../../services/interface/IOwnerService";
 import OwnerService from "../../services/implementation/OwnerService";
-import { Owner } from "../../schemas/ownerSchema";
+import { errorMap, ErrorType } from "../../constants/response.failture";
+import mongoose from "mongoose";
 
 class managerController implements IManagerController {
   private ManagerService: IManagerService;
@@ -32,38 +33,34 @@ class managerController implements IManagerController {
   }
 
   updateProfile = catchAsync(
-    async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-      const managerId = req.params.id as string;
+    async (req: Request, res: Response, next: NextFunction) => {
+      const managerId = req.body.managerId;
       if (!managerId) {
         return res
           .status(400)
           .json({ success: false, data: "Manager id required" });
       }
-      const managerData = req.body as Partial<IManager>;
-      const isUpdated = await this.ManagerService.updateManager(
+      const managerData = req.body;
+      const updated = await this.ManagerService.updateManager(
         managerId,
         managerData
       );
 
-      logger.info("isUpdated", isUpdated);
-      if (isUpdated) {
-        res.status(200).json({
-          success: true,
-          data: { message: "Manager updated successfully" },
-        });
-      }
-
-      if (!isUpdated) {
-        res.status(400).json({
-          success: false,
-          data: { message: "something went wrong" },
-        });
-      }
+      res.status(200).json({
+        success: true,
+        data: { message: "Manager updated successfully" },
+      });
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        updated
+      );
     }
   );
 
   addUser = catchAsync(
-    async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    async (req: Request, res: Response, next: NextFunction) => {
       const { managerId } = req.body;
       console.log("req.body at add user", req.body);
       const manager = await this.ManagerService.findManagerById(managerId);
@@ -93,7 +90,7 @@ class managerController implements IManagerController {
   );
 
   getUsersByManager = catchAsync(
-    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    async (req: Request, res: Response, next: NextFunction) => {
       const managerId = req.params.id as string;
 
       const manager = await this.ManagerService.findManagerById(managerId);
@@ -111,7 +108,7 @@ class managerController implements IManagerController {
   );
 
   toggleUserStatus = catchAsync(
-    async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    async (req: Request, res: Response, next: NextFunction) => {
       const { managerId } = req.body;
       const userId = req.params.id as string;
       console.log({ userId, managerId });
@@ -163,6 +160,33 @@ class managerController implements IManagerController {
         successMap[SuccessType.Ok].code,
         successMap[SuccessType.Ok].message
       );
+    }
+  );
+
+  getManagersByFieldHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      let { field, value } = req.query;
+      if (typeof field !== "string" || typeof value !== "string") {
+        throw new AppError(
+          errorMap[ErrorType.BadRequest].message,
+          errorMap[ErrorType.BadRequest].code
+        );
+      }
+      const allowedFields = ["spaces", "_id"];
+      if (!allowedFields.includes("" + field)) {
+        throw new AppError("Invalid query", 400);
+      }
+
+      const query: Record<string, mongoose.Types.ObjectId> = {};
+      query[field] = new mongoose.Types.ObjectId(value);
+
+      const result = await this.ManagerService.getManagersQuery(query);
+
+      if (result) {
+        return sendResponse(res, 200, "fetched managers succesfully", result);
+      } else {
+        throw new AppError("No users found", 404);
+      }
     }
   );
 }

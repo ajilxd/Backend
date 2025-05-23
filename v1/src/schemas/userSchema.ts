@@ -18,9 +18,12 @@ const UserSchema: Schema<IUser> = new Schema(
       default: UserRole.User,
     },
     managerId: { type: Schema.Types.ObjectId, ref: "Manager", required: true },
+    managerName: { type: String, required: false },
+    bio: { type: String, required: false },
     refreshToken: { type: String, required: false },
     ownerId: { type: Schema.Types.ObjectId, required: false },
     companyId: { type: Schema.Types.ObjectId, required: true },
+    companyName: { type: String, required: false },
   },
   {
     timestamps: true,

@@ -2,7 +2,9 @@ import { IOwnerRepository } from "../../repositories/interface/IOwnerRepository"
 import { IOwner } from "../../entities/IOwner";
 import AppError from "../../errors/appError";
 import { IOwnerService } from "../interface/IOwnerService";
-import OwnerRepository from "../../repositories/implementations/OwnerRepository";
+import OwnerRepository, {
+  OwnerQueryType,
+} from "../../repositories/implementations/OwnerRepository";
 import { errorMap, ErrorType } from "../../constants/response.failture";
 import { successMap, SuccessType } from "../../constants/response.succesful";
 import bcrypt from "bcryptjs";
@@ -210,6 +212,11 @@ class OwnerService implements IOwnerService {
       );
     }
     return account;
+  }
+
+  async getOwnersQuery(query: OwnerQueryType): Promise<IOwner[]> {
+    const result = await this.ownerRepository.getOwnersByQuery(query);
+    return result;
   }
 }
 

@@ -14,4 +14,6 @@ export interface IManager extends Document {
   role: UserRole;
   refreshToken?: string;
   companyId: ObjectId;
+  companyName: string;
+  bio: string;
 }

@@ -13,7 +13,9 @@ export interface IOwner extends Document {
   stripe_customer_id?: string;
   refreshToken?: string;
   role: UserRole;
-
+  bio: string;
+  image: string;
+  company: string;
   subscription?: {
     name?: string;
     isActive?: boolean;

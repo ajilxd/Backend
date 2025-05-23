@@ -2,7 +2,6 @@ import { Schema, model } from "mongoose";
 import { IOwner } from "../entities/IOwner";
 import bcrypt from "bcryptjs";
 import AppError from "../errors/appError";
-import { string } from "joi";
 import { UserRole } from "../utils/JWT";
 
 const OwnerSchema: Schema<IOwner> = new Schema(
@@ -14,6 +13,8 @@ const OwnerSchema: Schema<IOwner> = new Schema(
     isBlocked: { type: Boolean, default: false },
     stripe_customer_id: { type: String, required: false },
     refreshToken: { type: String, required: false },
+    image: { type: String, required: false },
+    company: { type: String, required: false },
     role: {
       type: String,
       enum: Object.values(UserRole),
@@ -40,6 +41,7 @@ const OwnerSchema: Schema<IOwner> = new Schema(
       type: Array,
       required: false,
     },
+    bio: { type: String, required: false },
   },
   { timestamps: true }
 );
@@ -59,7 +61,6 @@ OwnerSchema.pre<IOwner>("save", async function (next) {
   }
 });
 
-// Pre-update hook for hashing password on update
 OwnerSchema.pre<any>("findOneAndUpdate", async function (next) {
   const update = this.getUpdate() as any;
 

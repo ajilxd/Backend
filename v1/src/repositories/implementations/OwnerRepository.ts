@@ -4,6 +4,12 @@ import { Owner } from "../../schemas/ownerSchema";
 import { ObjectId } from "mongoose";
 
 import { BaseRepository } from "./BaseRepository";
+import AppError from "../../errors/appError";
+
+export type OwnerQueryType = {
+  spaces?: string;
+  _id?: string;
+};
 
 class OwnerRepository
   extends BaseRepository<IOwner>
@@ -38,6 +44,14 @@ class OwnerRepository
 
   async findByEmail(email: string): Promise<IOwner | null> {
     return await Owner.findOne({ email });
+  }
+
+  async getOwnersByQuery(query: OwnerQueryType): Promise<IOwner[]> {
+    const result = await this.model.find(query);
+    if (!result.length) {
+      throw new AppError("No owners found", 404);
+    }
+    return result;
   }
 }
 

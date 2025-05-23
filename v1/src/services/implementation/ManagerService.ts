@@ -1,5 +1,7 @@
 import { IManagerRepository } from "../../repositories/interface/IManagerRepository";
-import ManagerRepository from "../../repositories/implementations/ManagerRepository";
+import ManagerRepository, {
+  ManagerQueryType,
+} from "../../repositories/implementations/ManagerRepository";
 import { IManager } from "../../entities/IManager";
 import { IManagerService } from "../interface/IManagerService";
 
@@ -75,7 +77,7 @@ class ManagerService implements IManagerService {
     id: string,
     managerData: Partial<IManager>
   ): Promise<IManager> {
-    const existingManager = await this.managerRepository.findOne({ id });
+    const existingManager = await this.managerRepository.findOne({ _id: id });
 
     if (existingManager) {
       const updated = await this.managerRepository.update(id, managerData);
@@ -110,6 +112,11 @@ class ManagerService implements IManagerService {
         successMap[SuccessType.NoContent].code
       );
     }
+  }
+
+  async getManagersQuery(query: ManagerQueryType): Promise<IManager[]> {
+    const result = await this.managerRepository.getManagersByQuery(query);
+    return result;
   }
 }
 export default new ManagerService(ManagerRepository, UserRepository);

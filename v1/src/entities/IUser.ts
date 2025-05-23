@@ -14,4 +14,7 @@ export interface IUser extends Document {
   refreshToken?: string;
   ownerId: ObjectId;
   companyId: ObjectId;
+  bio: string;
+  managerName: string;
+  companyName: string;
 }

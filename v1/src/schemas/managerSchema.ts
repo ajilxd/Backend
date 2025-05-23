@@ -1,6 +1,7 @@
-import { Schema, model, Types } from "mongoose";
+import { Schema, model } from "mongoose";
 import { IManager } from "../entities/IManager";
 import { UserRole } from "../utils/JWT";
+
 const ManagerSchema: Schema<IManager> = new Schema(
   {
     name: { type: String, required: true },
@@ -16,6 +17,8 @@ const ManagerSchema: Schema<IManager> = new Schema(
     },
     refreshToken: { type: String, required: false },
     companyId: { type: Schema.Types.ObjectId, require: true },
+    companyName: { type: String, required: false },
+    bio: { type: String, required: false },
   },
   { timestamps: true }
 );

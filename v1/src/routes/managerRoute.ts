@@ -3,8 +3,14 @@ import managerController from "../controllers/implementation/ManagerController";
 import authMiddleware from "../middleware/auth";
 export const managerRouter = Router();
 
+managerRouter.get(
+  "/",
+  authMiddleware(["manager"]),
+  managerController.getManagersByFieldHandler
+);
+
 managerRouter.put(
-  "/profile/:id",
+  "/profile",
   authMiddleware(["manager"]),
   managerController.updateProfile
 );

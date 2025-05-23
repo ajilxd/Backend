@@ -16,6 +16,18 @@ ownerRouter.post("/resend-otp", OwnerController.resendOtphandler);
 ownerRouter.post("/google", OwnerController.handleGoogleClick);
 ownerRouter.post("/forget-password", OwnerController.forgotPasswordHandler);
 ownerRouter.post("/reset-password", OwnerController.resetPasswordHandler);
+
+ownerRouter.get(
+  "/",
+  authMiddleware(["owner"]),
+  OwnerController.getOwnersByFieldHandler
+);
+
+ownerRouter.put(
+  "/profile",
+  authMiddleware(["owner"]),
+  OwnerController.updateProfile
+);
 ownerRouter.post(
   "/managers",
   authMiddleware(["owner"]),

@@ -11,7 +11,7 @@ import ManagerService from "../../services/implementation/ManagerService";
 import SubscriptionService from "../../services/implementation/SubscriptionService";
 import { ISubscription } from "../../entities/ISubscription";
 import { ISubscriptionService } from "../../services/interface/ISubscriptionService";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { stripeInstance } from "../..";
 import AppError from "../../errors/appError";
 import { errorMap, ErrorType } from "../../constants/response.failture";
@@ -280,10 +280,28 @@ class OwnerController implements IOwnerController {
     }
   );
 
+  updateProfile = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { ownerId } = req.body;
+      if (!ownerId) {
+        throw new AppError(
+          errorMap[ErrorType.ValidationError].message,
+          errorMap[ErrorType.ValidationError].code
+        );
+      }
+      const updated = await this.OwnerService.updateOwner(ownerId, req.body);
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        updated
+      );
+    }
+  );
+
   addManagerHandler = catchAsync(
     // dto
     async (req: Request, res: Response, next: NextFunction) => {
-      console.log(req.body);
       const { ownerId } = req.body;
 
       if (!ownerId) {
@@ -523,6 +541,33 @@ class OwnerController implements IOwnerController {
           successMap[SuccessType.NoContent].code,
           successMap[SuccessType.NoContent].message
         );
+      }
+    }
+  );
+
+  getOwnersByFieldHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      let { field, value } = req.query;
+      if (typeof field !== "string" || typeof value !== "string") {
+        throw new AppError(
+          errorMap[ErrorType.BadRequest].message,
+          errorMap[ErrorType.BadRequest].code
+        );
+      }
+      const allowedFields = ["_id"];
+      if (!allowedFields.includes("" + field)) {
+        throw new AppError("Invalid query", 400);
+      }
+
+      const query: Record<string, mongoose.Types.ObjectId> = {};
+      query[field] = new mongoose.Types.ObjectId(value);
+
+      const result = await this.OwnerService.getOwnersQuery(query);
+
+      if (result) {
+        return sendResponse(res, 200, "fetched owners succesfully", result);
+      } else {
+        throw new AppError("No users found", 404);
       }
     }
   );

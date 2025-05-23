@@ -5,9 +5,8 @@ import { BaseRepository } from "./BaseRepository";
 import AppError from "../../errors/appError";
 
 export type UserQueryType = {
-  spaceId?: string;
+  spaces?: string;
   _id?: string;
-  creatorId?: string;
 };
 
 class UserRepository extends BaseRepository<IUser> implements IUserRepository {

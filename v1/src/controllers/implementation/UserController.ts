@@ -36,25 +36,26 @@ class UserController implements IUserController {
         throw new AppError("No user id found", 400);
       }
       const updated = await this.UserService.updateUser(userId, req.body);
-      if (updated) {
-        return sendResponse(res, 201, "updation went succesfull", updated);
-      } else {
-        throw new AppError("Internal server error", 500);
-      }
+
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        updated
+      );
     }
   );
 
   getUsersByFieldHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       let { field, value } = req.query;
-      console.log(req.query);
       if (typeof field !== "string" || typeof value !== "string") {
         throw new AppError(
           errorMap[ErrorType.BadRequest].message,
           errorMap[ErrorType.BadRequest].code
         );
       }
-      const allowedFields = ["spaces", "_id", "creatorId"];
+      const allowedFields = ["spaces", "_id"];
       if (!allowedFields.includes("" + field)) {
         throw new AppError("Invalid query", 400);
       }
@@ -64,11 +65,7 @@ class UserController implements IUserController {
 
       const result = await this.UserService.getUsersQuery(query);
 
-      if (result) {
-        return sendResponse(res, 200, "fetched users succesfully", result);
-      } else {
-        throw new AppError("No users found", 404);
-      }
+      return sendResponse(res, 200, "fetched users succesfully", result);
     }
   );
 }
