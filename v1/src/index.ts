@@ -1,4 +1,3 @@
-import AWS from "aws-sdk";
 import { Server } from "socket.io";
 import http from "http";
 import express from "express";
@@ -7,7 +6,6 @@ import { connectMongodb, corsOptions } from "./utils";
 import config from "./config";
 import { ownerRouter } from "./routes/ownerRoute";
 import { adminRouter } from "./routes/adminRoute";
-import { Socket } from "socket.io";
 
 import { managerRouter } from "./routes/managerRoute";
 import cookieParser from "cookie-parser";
@@ -30,6 +28,8 @@ import { chatRouter } from "./routes/chatRoute";
 import { meetingRouter } from "./routes/meetingRoute";
 import { createWorker } from "./controllers/mediasoupHandler";
 import { registerPeerSocketHandlers } from "./controllers/registerPeerSocketHandlers";
+import { registerNotificationHandlers } from "./controllers/registerNotificationHandlers";
+import "./utils/meetingActivator";
 
 const app = express();
 
@@ -52,10 +52,14 @@ const io = new Server(server, {
 });
 
 const peerNamespace = io.of("/peers");
+const notificationNamespace = io.of("/notifications");
 
 peerNamespace.on("connection", (socket) => {
-  console.log("Peer connected:", socket.id);
   registerPeerSocketHandlers(peerNamespace, socket);
+});
+
+notificationNamespace.on("connection", (socket) => {
+  registerNotificationHandlers(notificationNamespace, socket);
 });
 
 io.on("connection", (socket) => {
@@ -93,7 +97,7 @@ async function init() {
     await createWorker();
 
     server.listen(config.PORT, () => {
-      logger.info(`🚀 Server running at http://localhost:${config.PORT}`);
+      logger.info(`Server running at http://localhost:${config.PORT}`);
     });
   } catch (err) {
     console.error("❌ Startup error:", err);

@@ -16,6 +16,52 @@ interface CustomSocket extends Socket {
   meetingId?: string;
 }
 
+const cleanupPeerResources = (socket: CustomSocket) => {
+  if (socket.producers) {
+    for (const producerId of socket.producers) {
+      const producer = producers.get(producerId);
+      if (producer) {
+        producer.close();
+        console.log(`Closed producer ${producerId} from ${socket.id}`);
+        producers.delete(producerId);
+      }
+    }
+  }
+
+  if (socket.consumers) {
+    const resources = routerResources.get(socket.meetingId!);
+    console.log("consumers before deletion of lefteee's consumers ", consumers);
+    for (const consumerId of socket.consumers) {
+      const consumer = consumers.get(consumerId);
+      if (consumer) {
+        consumer.close();
+        console.log(`Closed consumer ${consumerId} from ${socket.id}`);
+        consumers.delete(consumerId);
+        console.log(
+          "consumers after deletion of lefteee's consumers ",
+          consumers
+        );
+      }
+      if (resources) {
+        resources.consumers.delete(consumer);
+        const hasDeletedconsumer = resources.consumers.has(consumer);
+        console.log(
+          "is the consumer of leftee getting deleted",
+          hasDeletedconsumer
+        );
+      }
+    }
+  }
+
+  for (const [transportId, transport] of transports) {
+    if (transport.appData.userId === socket.userId) {
+      transport.close();
+      transports.delete(transportId);
+      console.log(`Closed transport ${transportId} for user ${socket.userId}`);
+    }
+  }
+};
+
 export function registerPeerSocketHandlers(
   nsp: Namespace,
   socket: CustomSocket
@@ -123,23 +169,29 @@ export function registerPeerSocketHandlers(
         socket.userId = userId;
 
         socket.join(meetingId);
-        // console.log(resources);
-        // console.log({ producersForConsuming: Array.from(resources.producers) });
-        const existingProducers = Array.from(resources.producers).map(
-          (producer) => ({
+        const prevProducers = Array.from(resources.producers)
+          .map((producer) => ({
             id: producer.id,
             kind: producer.kind,
             userId: producer.appData.userId,
-          })
-        );
+          }))
+          .filter((entry) => entry.userId !== userId);
+
+        const newProducers = Array.from(resources.producers)
+          .map((producer) => ({
+            id: producer.id,
+            kind: producer.kind,
+            userId: producer.appData.userId,
+          }))
+          .filter((entry) => entry.userId === userId);
 
         socket.to(meetingId).emit("new-participant", {
           userId,
           socketId: socket.id,
-          producers: existingProducers,
+          producers: newProducers,
         });
 
-        callback({ producers: existingProducers });
+        callback({ producers: prevProducers });
       } catch (err: any) {
         console.error(`join-meeting error:`, err);
         callback({ error: err.message });
@@ -197,6 +249,7 @@ export function registerPeerSocketHandlers(
           socket.consumers = new Set();
         }
         socket.consumers.add(consumer.id);
+        consumers.set(consumer.id, consumer);
         resources.consumers.add(consumer);
 
         console.log(
@@ -218,49 +271,16 @@ export function registerPeerSocketHandlers(
 
   socket.on("leave-meeting", (data) => {
     console.log(data.name + " has left the meeting " + data.meetingId);
+    cleanupPeerResources(socket);
     socket.to(data.meetingId).emit("leave-meeting", {
       name: data.name,
       userId: data.userId,
     });
+    console.log("after user left", routerResources);
   });
 
   socket.on("disconnect", () => {
     console.log(`Peer disconnected: ${socket.id}`);
-
-    if (socket.producers) {
-      for (const producerId of socket.producers) {
-        const producer = producers.get(producerId);
-        if (producer) {
-          producer.close();
-          console.log(`Closed producer ${producerId} from ${socket.id}`);
-          producers.delete(producerId);
-        }
-      }
-    }
-
-    if (socket.consumers) {
-      const resources = routerResources.get(socket.meetingId!);
-      for (const consumerId of socket.consumers) {
-        const consumer = consumers.get(consumerId);
-        if (consumer) {
-          consumer.close();
-          console.log(`Closed consumer ${consumerId} from ${socket.id}`);
-          consumers.delete(consumerId);
-        }
-        if (resources) {
-          resources.consumers.delete(consumer);
-        }
-      }
-    }
-
-    for (const [transportId, transport] of transports) {
-      if (transport.appData.userId === socket.userId) {
-        transport.close();
-        transports.delete(transportId);
-        console.log(
-          `Closed transport ${transportId} for user ${socket.userId}`
-        );
-      }
-    }
+    cleanupPeerResources(socket);
   });
 }

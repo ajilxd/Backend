@@ -25,14 +25,13 @@ class OwnerService implements IOwnerService {
   }
 
   async checkOwner(email: string, password: string): Promise<IOwner> {
+    console.log("email from check owner", email);
     const result = await this.ownerRepository.findOne({ email });
+    console.log("result from the checkowner", result);
     if (result && (await result.comparePassword(password))) {
       return result;
     } else {
-      throw new AppError(
-        "invalid credentials",
-        errorMap[ErrorType.Unauthorized].code
-      );
+      throw new AppError("invalid credentials", 403);
     }
   }
 
@@ -204,7 +203,7 @@ class OwnerService implements IOwnerService {
 
   async fetchOwnerById(id: string): Promise<IOwner | null> {
     const account = await this.ownerRepository.findOne({ _id: id });
-
+    console.log("owner account", account);
     if (!account) {
       throw new AppError(
         errorMap[ErrorType.NotFound].message,

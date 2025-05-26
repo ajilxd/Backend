@@ -207,6 +207,8 @@ class SpaceService implements ISpaceService {
       );
     }
 
+    console.log("members from the add member service", data);
+
     const validSpaceId = await this.SpaceRepository.getSpacesByQuery({
       _id: spaceId,
     });

@@ -37,8 +37,8 @@ class MeetingController implements IMeetingController {
 
   addMeetingHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      console.log("im call maker from backend");
-      const { hostId, role, spaceId, isInstant, userId } = req.body;
+      console.log("im call maker from backend", req.body);
+      const { hostId, role, spaceId, isInstant } = req.body;
       const meetingId = uuidv4();
       let validUser;
       if (role === "manager") {
@@ -69,49 +69,37 @@ class MeetingController implements IMeetingController {
           );
         }
       }
-
-      let rtpCapabilities;
-      if (isInstant) {
-        const router = await createRouter(meetingId);
-        rtpCapabilities = router.rtpCapabilities;
-      }
-
-      const sendTransport = await createWebRtcTransport(
-        meetingId,
-        hostId,
-        "send"
-      );
-      const recvTransport = await createWebRtcTransport(
-        meetingId,
-        hostId,
-        "recv"
-      );
-
       const created = await this.MeetingService.createMeeting({
         ...req.body,
         meetingId,
       });
 
-      const result = {
-        rtpCapabilities,
-        sendtransportOptions: {
-          id: sendTransport.id,
-          iceParameters: sendTransport.iceParameters,
-          iceCandidates: sendTransport.iceCandidates,
-          dtlsParameters: sendTransport.dtlsParameters,
-          sctpParameters: sendTransport.sctpParameters,
-        },
-        recvTransportOptions: {
-          id: recvTransport.id,
-          iceParameters: recvTransport.iceParameters,
-          iceCandidates: recvTransport.iceCandidates,
-          dtlsParameters: recvTransport.dtlsParameters,
-          sctpParameters: recvTransport.sctpParameters,
-        },
-        meeting: created,
-      };
-
+      let rtpCapabilities;
+      let sendTransport;
+      let recvTransport;
       if (isInstant) {
+        const router = await createRouter(meetingId);
+        rtpCapabilities = router.rtpCapabilities;
+        sendTransport = await createWebRtcTransport(meetingId, hostId, "send");
+        recvTransport = await createWebRtcTransport(meetingId, hostId, "recv");
+        const result = {
+          rtpCapabilities,
+          sendtransportOptions: {
+            id: sendTransport.id,
+            iceParameters: sendTransport.iceParameters,
+            iceCandidates: sendTransport.iceCandidates,
+            dtlsParameters: sendTransport.dtlsParameters,
+            sctpParameters: sendTransport.sctpParameters,
+          },
+          recvTransportOptions: {
+            id: recvTransport.id,
+            iceParameters: recvTransport.iceParameters,
+            iceCandidates: recvTransport.iceCandidates,
+            dtlsParameters: recvTransport.dtlsParameters,
+            sctpParameters: recvTransport.sctpParameters,
+          },
+          meeting: created,
+        };
         return sendResponse(
           res,
           successMap[SuccessType.Created].code,
@@ -119,6 +107,7 @@ class MeetingController implements IMeetingController {
           result
         );
       }
+
       return sendResponse(
         res,
         successMap[SuccessType.Created].code,
@@ -191,12 +180,9 @@ class MeetingController implements IMeetingController {
         meeting = existingMeeting[0];
       }
 
-      const router = routerResources.get(meetingId)?.router;
+      let router = routerResources.get(meetingId)?.router;
       if (!router) {
-        throw new AppError(
-          "Failed to find the router with this meeting id",
-          400
-        );
+        router = await createRouter(meetingId);
       }
 
       const rtpCapabilities = router.rtpCapabilities;

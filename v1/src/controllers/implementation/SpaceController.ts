@@ -13,6 +13,7 @@ import UserService from "../../services/implementation/UserService";
 import { logger } from "../../utils/logger";
 
 import mongoose from "mongoose";
+import { Space } from "../../schemas/spaceSchema";
 
 class SpaceController implements ISpaceController {
   private SpaceService: ISpaceService;
@@ -24,9 +25,19 @@ class SpaceController implements ISpaceController {
 
   addSpaceHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { ownerId } = req.body;
+      const { ownerId, companyName } = req.body;
       if (!ownerId) {
         throw new AppError("No managerId found", 404);
+      }
+      const companies = await Space.find();
+      const samenameComp = companies.filter(
+        (i) => i.companyName === companyName
+      );
+      const existingCompanyname = await Space.findOne({ companyName });
+      console.log(existingCompanyname);
+      if (existingCompanyname || samenameComp.length > 0) {
+        // return sendResponse(res, 400, "existing company name");
+        throw new AppError("duplicates found- company name", 400);
       }
       const data = await this.SpaceService.createSpace(ownerId, req.body);
       if (data) {
@@ -81,6 +92,7 @@ class SpaceController implements ISpaceController {
   addUserHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { managerId, spaceId } = req.body;
+      console.log("req body at add user controller", req.body);
       if (!managerId || !spaceId) {
         throw new AppError("No managerId ,SpaceId found", 400);
       }

@@ -76,10 +76,8 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
     );
   }
 
-  console.log("from refresh token", user);
-  console.log({ role, model });
   const dbUser = await model.findOne({ refreshToken });
-  console.log("db user from refresh token", dbUser);
+
   if (!dbUser) {
     return sendResponse(
       res,

@@ -24,14 +24,14 @@ export const transports = new Map<string, Transport>();
 export async function createWorker(): Promise<Worker> {
   if (worker) return worker;
   worker = await mediasoup.createWorker();
-  console.log("✅ Mediasoup Worker created");
+  console.log(" Mediasoup Worker created");
 
   return worker;
 }
 
 export async function createRouter(meetingId: string): Promise<Router> {
   if (!worker) {
-    throw new Error("❌ Mediasoup worker has not been created yet");
+    throw new Error(" Mediasoup worker has not been created yet");
   }
 
   const mediaCodecs: RtpCodecCapability[] = [
@@ -57,7 +57,7 @@ export async function createRouter(meetingId: string): Promise<Router> {
     consumers: new Set(),
   });
 
-  console.log(`✅ Router created for meeting: ${meetingId}`);
+  console.log(`Router created for meeting: ${meetingId}`);
   return router;
 }
 
@@ -68,11 +68,11 @@ export async function createWebRtcTransport(
 ): Promise<WebRtcTransport> {
   const resources = routerResources.get(meetingId);
   if (!resources) {
-    throw new Error(`❌ Router not found for meeting: ${meetingId}`);
+    throw new Error(` Router not found for meeting: ${meetingId}`);
   }
 
   const transport = await resources.router.createWebRtcTransport({
-    listenIps: [{ ip: "0.0.0.0", announcedIp: "192.168.10.8" }],
+    listenIps: [{ ip: "127.0.0.1" }],
     enableUdp: true,
     enableTcp: true,
     preferUdp: true,
@@ -84,7 +84,7 @@ export async function createWebRtcTransport(
   transports.set(transport.id, transport);
 
   console.log(
-    `✅ WebRTC Transport created for meeting: ${meetingId}, transportId: ${transport.id}`
+    `WebRTC Transport created for meeting: ${meetingId}, transportId: ${transport.id}`
   );
 
   return transport;
@@ -94,48 +94,43 @@ export function removeRouter(meetingId: string): void {
   const resources = routerResources.get(meetingId);
 
   if (!resources) {
-    console.warn(`⚠️ No router found for meeting: ${meetingId}`);
+    console.warn(` No router found for meeting: ${meetingId}`);
     return;
   }
 
-  // Close all consumers
   resources.consumers.forEach((consumer) => {
     try {
       consumer.close();
     } catch (err) {
-      console.error(`❌ Error closing consumer: ${err}`);
+      console.error(`Error closing consumer: ${err}`);
     }
   });
 
-  // Close all producers
   resources.producers.forEach((producer) => {
     try {
       producer.close();
     } catch (err) {
-      console.error(`❌ Error closing producer: ${err}`);
+      console.error(` Error closing producer: ${err}`);
     }
   });
 
-  // Close all transports
   resources.transports.forEach((transport) => {
     try {
       transport.close();
     } catch (err) {
-      console.error(`❌ Error closing transport: ${err}`);
+      console.error(`Error closing transport: ${err}`);
     }
   });
 
-  // Close the router itself
   try {
     resources.router.close();
   } catch (err) {
-    console.error(`❌ Error closing router: ${err}`);
+    console.error(`Error closing router: ${err}`);
   }
 
-  // Delete from map
   routerResources.delete(meetingId);
   console.log(
-    `🧹 Successfully removed router and cleaned resources for meeting: ${meetingId}`
+    `Successfully removed router and cleaned resources for meeting: ${meetingId}`
   );
 }
 
@@ -147,7 +142,7 @@ export function removeParticipant(
   const resources = routerResources.get(meetingId);
 
   if (!resources) {
-    console.warn(`⚠️ No router found for meeting: ${meetingId}`);
+    console.warn(` No router found for meeting: ${meetingId}`);
     return;
   }
   const consumers = Array.from(resources.consumers).filter(
@@ -157,7 +152,7 @@ export function removeParticipant(
     (i) => i.appData.userId === userId
   );
 
-  const tranports = Array.from(resources.producers).filter(
+  const tranports = Array.from(resources.transports).filter(
     (i) => i.appData.userId === userId
   );
 
@@ -168,43 +163,41 @@ export function removeParticipant(
     (i) => i.appData.userId !== userId
   );
 
-  const newTranports = Array.from(resources.producers).filter(
+  const newTranports = Array.from(resources.transports).filter(
     (i) => i.appData.userId !== userId
   );
   const newRouterResources = {
     router: resources.router,
     producers: new Set(newProducers),
     consumers: new Set(newConsumers),
-    transports: new Set(newTranports) as any,
+    transports: new Set(newTranports),
   };
   routerResources.set(meetingId, newRouterResources);
-  consumers.forEach((consumer) => {
-    try {
-      consumer.close();
-    } catch (err) {
-      console.error(`❌ Error closing consumer: ${err}`);
-    }
-  });
+  // consumers.forEach((consumer) => {
+  //   try {
+  //     consumer.close();
+  //   } catch (err) {
+  //     console.error(`❌ Error closing consumer: ${err}`);
+  //   }
+  // });
 
-  // Close all producers
-  producers.forEach((producer) => {
-    try {
-      producer.close();
-    } catch (err) {
-      console.error(`❌ Error closing producer: ${err}`);
-    }
-  });
+  // producers.forEach((producer) => {
+  //   try {
+  //     producer.close();
+  //   } catch (err) {
+  //     console.error(`❌ Error closing producer: ${err}`);
+  //   }
+  // });
 
-  // Close all transports
-  transports.forEach((transport) => {
-    try {
-      transport.close();
-    } catch (err) {
-      console.error(`❌ Error closing transport: ${err}`);
-    }
-  });
+  // transports.forEach((transport) => {
+  //   try {
+  //     transport.close();
+  //   } catch (err) {
+  //     console.error(`❌ Error closing transport: ${err}`);
+  //   }
+  // });
 
-  console.log(
-    `cleaned tranport ${tranports.length} , producer ${producers.length} , consumer of the user ${consumers.length}" + name`
-  );
+  // console.log(
+  //   `cleaned tranport ${tranports.length} , producer ${producers.length} , consumer of the user ${consumers.length}" + name`
+  // );
 }
