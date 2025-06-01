@@ -27,7 +27,7 @@ const roomSocketMap: Record<string, RoomSocketInfo[]> = {};
 
 export function registerSocketHandlers(io: Server, socket: CustomSocket) {
   socket.on("user-connected", (data) => {
-    console.log("data from user disconnected", data);
+    console.log("data from user connected", data);
     const { userId } = data;
     if (!userSocketMap[userId]) {
       userSocketMap[userId] = {
@@ -42,6 +42,7 @@ export function registerSocketHandlers(io: Server, socket: CustomSocket) {
     userSocketMap[userId].sockets.add(socket.id);
     socket.userId = userId;
     console.log(`✅ User ${userId} registered with socket ${socket.id}`);
+    console.log("hey iam user socket map",userSocketMap)
   });
 
   socket.on("join-room", (data) => {
@@ -131,6 +132,7 @@ export function registerSocketHandlers(io: Server, socket: CustomSocket) {
         };
       });
     socket.to(room).emit("typing", typingFiltered);
+    console.log("user socket map",userSocketMap)
   });
 
   socket.on("stop-typing", (data) => {

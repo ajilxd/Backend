@@ -27,4 +27,6 @@ export interface ISpaceRepository extends IBaseRepository<ISpace> {
     spaceId: string,
     updateByQuery: updateSpaceByQueryType
   ): Promise<ISpace | null>;
+
+  addMembersToSpace(spaceId: string, members: any): Promise<ISpace>
 }

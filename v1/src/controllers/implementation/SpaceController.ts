@@ -52,6 +52,8 @@ class SpaceController implements ISpaceController {
     async (req: Request, res: Response, next: NextFunction) => {
       const { ownerId, spaceId, team } = req.body;
 
+      console.log("req body at space controller",req.body)
+
       if (!ownerId || !spaceId) {
         throw new AppError("No ownerId or spaceId provided", 400);
       }
@@ -61,6 +63,24 @@ class SpaceController implements ISpaceController {
         spaceId,
         req.body
       );
+
+
+      if (updated) {
+        sendResponse(res, 200, "Updation went successful", updated);
+      } else {
+        throw new AppError("Internal server error", 500);
+      }
+    }
+  );
+
+  addUserHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { managerId, spaceId,team } = req.body;
+      console.log("req body at add user controller", JSON.stringify(req.body));
+      if (!managerId || !spaceId) {
+        throw new AppError("No managerId ,SpaceId found", 400);
+      }
+
 
       const members: any[] = team?.members ?? [];
 
@@ -81,25 +101,10 @@ class SpaceController implements ISpaceController {
         );
       }
 
-      if (updated) {
-        sendResponse(res, 200, "Updation went successful", updated);
-      } else {
-        throw new AppError("Internal server error", 500);
-      }
-    }
-  );
-
-  addUserHandler = catchAsync(
-    async (req: Request, res: Response, next: NextFunction) => {
-      const { managerId, spaceId } = req.body;
-      console.log("req body at add user controller", req.body);
-      if (!managerId || !spaceId) {
-        throw new AppError("No managerId ,SpaceId found", 400);
-      }
       const result = await this.SpaceService.addMember(
         spaceId,
         managerId,
-        req.body
+       team.members
       );
 
       if (result) {

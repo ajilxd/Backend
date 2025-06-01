@@ -220,16 +220,18 @@ class SpaceService implements ISpaceService {
       );
     }
 
-    const result = await this.SpaceRepository.getSpaceByManagerIdAndSpaceId(
-      spaceId,
-      managerId
-    );
+    const members =data
 
-    if (!result) {
-      throw new AppError("No spaces found with managerId and spaceId", 404);
-    }
+    // const result = await this.SpaceRepository.getSpaceByManagerIdAndSpaceId(
+    //   spaceId,
+    //   managerId
+    // );
 
-    const updated = await this.SpaceRepository.update(spaceId, data);
+    // if (!result) {
+    //   throw new AppError("No spaces found with managerId and spaceId", 404);
+    // }
+
+    const updated = await this.SpaceRepository.addMembersToSpace(spaceId,members);
     if (!updated) {
       throw new AppError(
         errorMap[ErrorType.ServerError].message,

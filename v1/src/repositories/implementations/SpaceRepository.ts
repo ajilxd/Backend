@@ -76,6 +76,21 @@ class SpaceRepository
 
     return updated;
   }
+
+
+   async addMembersToSpace(spaceId:string,members: Partial<TeamMember>[]){
+    console.log("heyyyyyyy im add member from space repo",members)
+    const updated = await Space.findByIdAndUpdate({_id:spaceId},{$push:{
+      "team.members":{
+        $each:members
+      }
+    }},{new:true})
+    if(updated){
+      return updated
+    }else{
+      throw new AppError("updating members failed",500)
+    }
+  }
 }
 
 export default new SpaceRepository();

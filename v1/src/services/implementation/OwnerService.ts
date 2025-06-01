@@ -203,7 +203,7 @@ class OwnerService implements IOwnerService {
 
   async fetchOwnerById(id: string): Promise<IOwner | null> {
     const account = await this.ownerRepository.findOne({ _id: id });
-    console.log("owner account", account);
+    // console.log("owner account", account);
     if (!account) {
       throw new AppError(
         errorMap[ErrorType.NotFound].message,

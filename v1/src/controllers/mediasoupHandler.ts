@@ -152,7 +152,7 @@ export function removeParticipant(
     (i) => i.appData.userId === userId
   );
 
-  const tranports = Array.from(resources.transports).filter(
+  const transports = Array.from(resources.transports).filter(
     (i) => i.appData.userId === userId
   );
 
@@ -163,41 +163,43 @@ export function removeParticipant(
     (i) => i.appData.userId !== userId
   );
 
-  const newTranports = Array.from(resources.transports).filter(
+  const newTransports = Array.from(resources.transports).filter(
     (i) => i.appData.userId !== userId
   );
-  const newRouterResources = {
+
+  consumers.forEach((consumer) => {
+    try {
+      consumer.close();
+    } catch (err) {
+      console.error(`❌ Error closing consumer: ${err}`);
+    }
+  });
+
+  producers.forEach((producer) => {
+    try {
+      producer.close();
+    } catch (err) {
+      console.error(`❌ Error closing producer: ${err}`);
+    }
+  });
+
+  transports.forEach((transport) => {
+    try {
+      transport.close();
+    } catch (err) {
+      console.error(`❌ Error closing transport: ${err}`);
+    }
+  });
+
+    const newRouterResources = {
     router: resources.router,
     producers: new Set(newProducers),
     consumers: new Set(newConsumers),
-    transports: new Set(newTranports),
+    transports: new Set(newTransports),
   };
   routerResources.set(meetingId, newRouterResources);
-  // consumers.forEach((consumer) => {
-  //   try {
-  //     consumer.close();
-  //   } catch (err) {
-  //     console.error(`❌ Error closing consumer: ${err}`);
-  //   }
-  // });
 
-  // producers.forEach((producer) => {
-  //   try {
-  //     producer.close();
-  //   } catch (err) {
-  //     console.error(`❌ Error closing producer: ${err}`);
-  //   }
-  // });
-
-  // transports.forEach((transport) => {
-  //   try {
-  //     transport.close();
-  //   } catch (err) {
-  //     console.error(`❌ Error closing transport: ${err}`);
-  //   }
-  // });
-
-  // console.log(
-  //   `cleaned tranport ${tranports.length} , producer ${producers.length} , consumer of the user ${consumers.length}" + name`
-  // );
+  console.log(
+    `cleaned transport ${transports.length} , producer ${producers.length} , consumer of the user ${consumers.length}" + name`
+  );
 }

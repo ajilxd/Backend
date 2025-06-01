@@ -51,7 +51,7 @@ const io = new Server(server, {
   },
 });
 
-const peerNamespace = io.of("/peers");
+export const peerNamespace = io.of("/peers");
 const notificationNamespace = io.of("/notifications");
 
 peerNamespace.on("connection", (socket) => {

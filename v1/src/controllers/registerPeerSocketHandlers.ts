@@ -5,6 +5,7 @@ import {
   RtpParameters,
 } from "mediasoup/node/lib/rtpParametersTypes";
 
+
 export const producers = new Map<string, any>();
 export const consumers = new Map<string, any>();
 const connectingTransports = new Set<string>();
@@ -142,7 +143,7 @@ export function registerPeerSocketHandlers(
         socket.producers.add(producer.id);
 
         console.log(`[${socket.id}] ${kind} producer created: ${producer.id}`);
-        console.log("router resources", routerResources);
+        // console.log("router resources", routerResources);
 
         callback({ id: producer.id });
       } catch (err: any) {
@@ -177,21 +178,21 @@ export function registerPeerSocketHandlers(
           }))
           .filter((entry) => entry.userId !== userId);
 
-        const newProducers = Array.from(resources.producers)
+        const Producers = Array.from(resources.producers)
           .map((producer) => ({
             id: producer.id,
             kind: producer.kind,
             userId: producer.appData.userId,
           }))
-          .filter((entry) => entry.userId === userId);
+
 
         socket.to(meetingId).emit("new-participant", {
           userId,
           socketId: socket.id,
-          producers: newProducers,
+          producers: Producers,// try testing here
         });
 
-        callback({ producers: prevProducers });
+        callback({ producers:Producers });
       } catch (err: any) {
         console.error(`join-meeting error:`, err);
         callback({ error: err.message });
@@ -226,7 +227,7 @@ export function registerPeerSocketHandlers(
         if (!resources) {
           throw new Error(
             "failed to find the router resources for this meetingid " +
-              meetingId
+            meetingId
           );
         }
         const router = resources.router;
@@ -276,11 +277,23 @@ export function registerPeerSocketHandlers(
       name: data.name,
       userId: data.userId,
     });
-    console.log("after user left", routerResources);
+    // console.log("after user left", routerResources);
   });
 
   socket.on("disconnect", () => {
     console.log(`Peer disconnected: ${socket.id}`);
     cleanupPeerResources(socket);
   });
+
+  socket.on("terminate-meeting",(data)=>{
+    socket.to(data.meetingId).emit("terminate-meeting");
+    console.log("Meeting has been ended and terminate meeting has initiated")
+  })
+
+  socket.on("refresh-meeting",(data)=>{
+    console.log("hey im refreshser")
+    socket.to(data.spaceId).emit("refresh-meeting");
+    console.log("meeting refreshed for - "+data.spaceId)
+  })
 }
+

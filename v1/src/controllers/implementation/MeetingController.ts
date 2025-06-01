@@ -18,8 +18,7 @@ import {
   removeRouter,
   routerResources,
 } from "../mediasoupHandler";
-import AppError from "../../errors/appError";
-import { logger } from "../../utils/logger";
+
 
 class MeetingController implements IMeetingController {
   private MeetingService: IMeetingService;
@@ -100,6 +99,7 @@ class MeetingController implements IMeetingController {
           },
           meeting: created,
         };
+       
         return sendResponse(
           res,
           successMap[SuccessType.Created].code,
