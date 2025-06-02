@@ -13,6 +13,10 @@ export function registerNotificationHandlers(
     console.log(socket.id + "has connected to the notification system");
   });
 
+  socket.on("user-connect",(data)=>{
+    console.log("data payload from connecting notification socket",data)
+  })
+
   socket.on(
     "notification",
     (data: {

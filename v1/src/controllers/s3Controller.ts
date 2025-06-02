@@ -1,6 +1,9 @@
 import AWS from "aws-sdk";
 import { NextFunction, Request, Response } from "express";
 
+
+AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile: 's3uploader' });
+
 const s3 = new AWS.S3({
   region: "eu-north-1",
   endpoint: new AWS.Endpoint("s3.eu-north-1.amazonaws.com"),

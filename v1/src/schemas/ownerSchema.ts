@@ -14,7 +14,10 @@ const OwnerSchema: Schema<IOwner> = new Schema(
     stripe_customer_id: { type: String, required: false },
     refreshToken: { type: String, required: false },
     image: { type: String, required: false },
-    company: { type: String, required: false },
+    company:{
+      companyName:String,
+      companyId:String
+    },
     role: {
       type: String,
       enum: Object.values(UserRole),

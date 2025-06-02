@@ -19,9 +19,13 @@ class CompanyController implements ICompanyController {
   }
 
   registerCompanyHandler = catchAsync(
-    async (req: Request, res: Response, next: NextFunction) => {
-      logger.info("req body at company registration", req.body);
+    async (req: Request, res: Response, next: NextFunction) => {  
+      const existingCompany = (await this.companyservice.findAllCompanies()).find((i)=>i.companyName===req.body.companyName);
+      if(existingCompany){
+        return sendResponse(res,409,"existing company name")
+      }
       const result = await this.companyservice.createCompany(req.body);
+      const updated =await this.ownerservice.updateOwner(req.body.ownerId,{company:{companyName:result.companyName,companyId:""+result._id}})
       return sendResponse(
         res,
         successMap[SuccessType.Created].code,
