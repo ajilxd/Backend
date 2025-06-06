@@ -116,7 +116,7 @@ class OwnerController implements IOwnerController {
         );
 
       if (validUser.isBlocked) {
-        throw new AppError("Account got blocked", 401);
+        throw new AppError("Account got blocked", 403);
       }
 
       if (validUser) {

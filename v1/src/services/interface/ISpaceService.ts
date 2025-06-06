@@ -1,4 +1,5 @@
 import { ISpace, TeamMember } from "../../entities/ISpace";
+import { ObjectId } from "mongoose";
 
 import { SpaceQueryType, updateSpaceByQueryType } from "../../types";
 
@@ -12,12 +13,6 @@ export interface ISpaceService {
   getSpaces(query: SpaceQueryType): Promise<ISpace[]>;
   addMember(
     spaceId: string,
-    managerId: string,
-    data: Partial<TeamMember>
-  ): Promise<ISpace>;
-  editMember(
-    spaceId: string,
-    memberId: string,
     managerId: string,
     data: Partial<TeamMember>
   ): Promise<ISpace>;

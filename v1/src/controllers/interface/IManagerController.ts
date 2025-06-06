@@ -30,4 +30,6 @@ export interface IManagerController {
     res: Response,
     next: NextFunction
   ) => Promise<void> | void;
+
+  getNotificationsHandler: (req: Request, res: Response, next: NextFunction) => Promise<void> | void;
 }

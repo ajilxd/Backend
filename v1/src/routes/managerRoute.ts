@@ -34,3 +34,5 @@ managerRouter.get(
   authMiddleware(["manager"]),
   managerController.logoutHandler
 );
+
+managerRouter.get("/notifications",authMiddleware(["manager"]),managerController.getNotificationsHandler)

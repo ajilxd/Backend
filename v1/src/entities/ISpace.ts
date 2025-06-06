@@ -30,7 +30,7 @@ export type TeamMember = {
   role: MemberRoleType;
   joinedAt: Date;
   invitedBy: ObjectId;
-  status: TeamMemberStatusType;
+  status: string;
   designation: DesignationRoleType;
 };
 

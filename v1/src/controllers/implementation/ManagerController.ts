@@ -16,20 +16,25 @@ import { IOwnerService } from "../../services/interface/IOwnerService";
 import OwnerService from "../../services/implementation/OwnerService";
 import { errorMap, ErrorType } from "../../constants/response.failture";
 import mongoose from "mongoose";
+import { INotificationService } from "../../services/interface/INotificationService";
+import NotificationService from "../../services/implementation/NotificationService";
 
 class managerController implements IManagerController {
   private ManagerService: IManagerService;
   private UserService: IUserService;
   private OwnerService: IOwnerService;
+  private NotificationService:INotificationService
 
   constructor(
     ManagerService: IManagerService,
     UserService: IUserService,
-    OwnerService: IOwnerService
+    OwnerService: IOwnerService,
+    NotificationService:INotificationService
   ) {
     this.ManagerService = ManagerService;
     this.UserService = UserService;
     this.OwnerService = OwnerService;
+    this.NotificationService=NotificationService
   }
 
   updateProfile = catchAsync(
@@ -65,7 +70,7 @@ class managerController implements IManagerController {
       console.log("req.body at add user", req.body);
       const manager = await this.ManagerService.findManagerById(managerId);
       const owner = await this.OwnerService.fetchOwnerById(
-        "" + manager.ownerId
+        ""+manager.ownerId
       );
       if (!manager) {
         return res
@@ -189,6 +194,29 @@ class managerController implements IManagerController {
       }
     }
   );
+
+  getNotificationsHandler = catchAsync(
+      async (req: Request, res: Response, next: NextFunction) => {
+        console.log("hey im notification")
+      const { companyId, receiverId } = req.query;
+
+        if (typeof companyId !== 'string') {
+          return res.status(400).json({ message: "Invalid or missing companyId" });
+        }
+
+
+        if (typeof receiverId !== 'string') {
+          return res.status(400).json({ message: "Invalid or missing receiverId" });
+        }
+    
+        const notifications = await this.NotificationService.fetchNotifications(companyId);
+        const result = notifications.filter(i=>i.notificationSenderId!=receiverId);
+        if(result.length<1){
+          return sendResponse(res,204,"No content")
+        }
+        sendResponse(res,200,"notifications fetched succesfully",result)
+      }
+  )
 }
 
-export default new managerController(ManagerService, UserService, OwnerService);
+export default new managerController(ManagerService, UserService, OwnerService,NotificationService);

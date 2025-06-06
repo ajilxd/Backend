@@ -42,9 +42,13 @@ const TeamMemberSchema = new Schema(
 );
 
 const ManagersSchema = new Schema({
-  managerId: Schema.Types.ObjectId,
+  managerId: String,
   managerImage: String,
   managerName: String,
+  status:{
+    type:String,
+    default:"active"
+  }
 });
 
 const SpaceSchema: Schema<ISpace> = new Schema(

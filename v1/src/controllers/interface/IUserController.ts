@@ -18,4 +18,7 @@ export interface IUserController {
     res: Response,
     next: NextFunction
   ): Promise<void> | void;
+
+
+  getNotificationsHandler(req: Request, res: Response, next: NextFunction):Promise<void> | void
 }

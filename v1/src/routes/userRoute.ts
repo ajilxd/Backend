@@ -6,3 +6,4 @@ export const userRouter = Router();
 userRouter.get("/logout", UserController.logoutHandler);
 userRouter.put("/", UserController.updateUserHandler);
 userRouter.get("/", UserController.getUsersByFieldHandler);
+userRouter.get("/notifications",UserController.getNotificationsHandler)

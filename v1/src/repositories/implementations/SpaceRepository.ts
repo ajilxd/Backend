@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import { ISpace, TeamMember } from "../../entities/ISpace";
 import AppError from "../../errors/appError";
 import { Space } from "../../schemas/spaceSchema";
@@ -53,8 +53,8 @@ class SpaceRepository
   }
 
   async updateMember(
-    spaceId: string,
-    memberId: string,
+    spaceId: ObjectId,
+    memberId: ObjectId,
     data: Partial<TeamMember>
   ): Promise<ISpace | null> {
     const updated = await Space.findOneAndUpdate(
@@ -68,7 +68,7 @@ class SpaceRepository
       },
       {
         arrayFilters: [
-          { "elem.userId": new mongoose.Types.ObjectId(memberId) },
+          { "elem.userId":memberId},
         ],
         new: true,
       }

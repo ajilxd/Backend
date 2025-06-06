@@ -91,7 +91,7 @@ class AuthController implements IAuthController {
           await this.ManagerService.findManagerByEmail(email)
         ).toObject();
         const owner = await this.OwnerService.fetchOwnerById(
-          "" + manager.ownerId
+          manager.ownerId
         );
         if (!owner) {
           throw new AppError(
@@ -109,12 +109,12 @@ class AuthController implements IAuthController {
           );
         }
         if (manager.isBlocked) {
-          return sendResponse(res, 401, "Your account is blocked");
+          return sendResponse(res, 403, "Your account is blocked");
         }
 
         const validOtp = await this.OTPService.authOTPverify(email, role, otp);
         if (!validOtp) {
-          throw new AppError("Invalid OTP", 401);
+          throw new AppError("Invalid OTP", 403);
         }
 
         const { accessToken, refreshToken } =
@@ -130,6 +130,7 @@ class AuthController implements IAuthController {
           role: "manager",
           companyId: company?._id,
           companyName: company?.companyName,
+          spaces:manager.spaces
         };
         return res
           .status(200)
@@ -146,15 +147,27 @@ class AuthController implements IAuthController {
         const manager = await this.ManagerService.findManagerById(
           "" + user.managerId
         );
-        const owner = await this.OwnerService.fetchOwnerById("" + user.ownerId);
+        const owner = await this.OwnerService.fetchOwnerById(""+user.ownerId);
 
         if (user.isBlocked) {
-          return sendResponse(res, 401, "Your account is blocked");
+          return sendResponse(res, 403, "Your account is blocked");
         }
 
         const validOtp = await this.OTPService.authOTPverify(email, role, otp);
         if (!validOtp) {
-          throw new AppError("Invalid OTP", 401);
+          throw new AppError("Invalid OTP", 403);
+        }
+        if(!owner){
+          throw new AppError("failed fetching owner details",500)
+        }
+          const company = await this.CompanyService.findCompanyByOwnerId(
+          "" + owner._id
+        );
+        if (!company) {
+          throw new AppError(
+            "failed fetching company details at manager login",
+            500
+          );
         }
 
         const { accessToken, refreshToken } =
@@ -170,6 +183,9 @@ class AuthController implements IAuthController {
             id: user.id,
             image: user.image,
             role: "user",
+            companyId:user.companyId,
+            companyName:company.companyName,
+            spaces:user.spaces
           };
 
           res

@@ -11,6 +11,7 @@ import bcrypt from "bcryptjs";
 import config from "../../config";
 import jwt from "jsonwebtoken";
 import { logger } from "../../utils/logger";
+import mongoose from "mongoose";
 
 class OwnerService implements IOwnerService {
   private ownerRepository: IOwnerRepository;
@@ -26,7 +27,7 @@ class OwnerService implements IOwnerService {
 
   async checkOwner(email: string, password: string): Promise<IOwner> {
     console.log("email from check owner", email);
-    const result = await this.ownerRepository.findOne({ email });
+    const result = await this.ownerRepository.findByEmail(email);
     console.log("result from the checkowner", result);
     if (result && (await result.comparePassword(password))) {
       return result;
@@ -201,9 +202,11 @@ class OwnerService implements IOwnerService {
     }
   }
 
-  async fetchOwnerById(id: string): Promise<IOwner | null> {
-    const account = await this.ownerRepository.findOne({ _id: id });
-    // console.log("owner account", account);
+  async fetchOwnerById(id:string): Promise<IOwner | null> {
+    const objId =new mongoose.Types.ObjectId(id);
+    console.log('objectid',objId)
+    const account = await this.ownerRepository.findOne({ _id:objId});
+    console.log("owner account", account);
     if (!account) {
       throw new AppError(
         errorMap[ErrorType.NotFound].message,

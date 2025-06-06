@@ -2,6 +2,7 @@ import { ISpace } from "../../entities/ISpace";
 import { IBaseRepository } from "./IBaserRepository";
 import { TeamMember } from "../../entities/ISpace";
 import { updateSpaceByQueryType } from "../../types";
+import { ObjectId } from "mongoose";
 
 export interface ISpaceRepository extends IBaseRepository<ISpace> {
   getSpacesByQuery(query: {
@@ -18,8 +19,8 @@ export interface ISpaceRepository extends IBaseRepository<ISpace> {
   getAllSpacesByManagerId(managerId: string): Promise<ISpace[]>;
 
   updateMember(
-    spaceId: string,
-    memberId: string,
+    spaceId: ObjectId,
+    memberId:ObjectId,
     data: Partial<TeamMember>
   ): Promise<ISpace | null>;
 

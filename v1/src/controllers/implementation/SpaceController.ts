@@ -13,6 +13,8 @@ import UserService from "../../services/implementation/UserService";
 import { logger } from "../../utils/logger";
 
 import mongoose from "mongoose";
+
+
 import { Space } from "../../schemas/spaceSchema";
 
 class SpaceController implements ISpaceController {
@@ -25,9 +27,10 @@ class SpaceController implements ISpaceController {
 
   addSpaceHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { ownerId, companyName } = req.body;
+      const { ownerId, companyName,managers } = req.body;
+      console.log("managers from the req.body of space add",managers)
       if (!ownerId) {
-        throw new AppError("No managerId found", 404);
+        throw new AppError("No ownerId found", 404);
       }
       const companies = await Space.find();
       const samenameComp = companies.filter(
@@ -36,8 +39,8 @@ class SpaceController implements ISpaceController {
       const existingCompanyname = await Space.findOne({ companyName });
       console.log(existingCompanyname);
       if (existingCompanyname || samenameComp.length > 0) {
-        // return sendResponse(res, 400, "existing company name");
-        throw new AppError("duplicates found- company name", 400);
+        return sendResponse(res, 400, "existing company name");
+    
       }
       const data = await this.SpaceService.createSpace(ownerId, req.body);
       if (data) {
@@ -51,6 +54,7 @@ class SpaceController implements ISpaceController {
   editSpaceHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { ownerId, spaceId, team } = req.body;
+      
 
       console.log("req body at space controller",req.body)
 
@@ -115,26 +119,37 @@ class SpaceController implements ISpaceController {
     }
   );
 
-  editUserHandler = catchAsync(
-    async (req: Request, res: Response, next: NextFunction) => {
-      const { managerId, spaceId, memberId } = req.body;
-      if (!managerId || !spaceId || !memberId) {
-        throw new AppError("No managerId ,SpaceId,memberId found", 400);
-      }
-      const result = await this.SpaceService.editMember(
-        spaceId,
-        memberId,
-        managerId,
-        req.body
-      );
+  // editUserHandler = catchAsync(
+  //   async (req: Request, res: Response, next: NextFunction) => {
+  //     console.log('req.body at edit user of space',req.body )
 
-      if (result) {
-        sendResponse(res, 200, "Member updation went succesfull", result);
-      } else {
-        throw new AppError("Internal server error", 500);
-      }
-    }
-  );
+  //    const spaceId = req.body.spaceId
+  //     const managerId =req.body.managerId;
+  //     const memberId = req.body.memberId;
+
+
+  //     const statusUpdate =req.body.statusUpdate
+     
+  //     if (!managerId || !spaceId || !memberId) {
+  //       throw new AppError("No managerId ,SpaceId,memberId found", 400);
+  //     }
+  
+
+  //     const result = await this.SpaceService.editMember(
+  //       spaceId,
+  //       memberId,
+  //       managerId,
+  //       req.body,
+  //       statusUpdate
+  //     );
+
+  //     if (result) {
+  //       sendResponse(res, 200, "Member updation went succesfull", result);
+  //     } else {
+  //       throw new AppError("Internal server error", 500);
+  //     }
+  //   }
+  // );
 
   getSpacesByField = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
