@@ -19,35 +19,40 @@ import { sendResponse } from "../../utils/sendResponse";
 import { successMap, SuccessType } from "../../constants/response.succesful";
 import { logger } from "../../utils/logger";
 import { IOwner } from "../../entities/IOwner";
+import { IUserService } from "../../services/interface/IUserService";
+import UserService from "../../services/implementation/UserService";
 
 class OwnerController implements IOwnerController {
   private OwnerService: IOwnerService;
   private TokenService: ITokenService;
   private ManagerService: IManagerService;
   private SubscriptionService: ISubscriptionService<ISubscription<string>>;
+  private UserService: IUserService;
 
   constructor(
     OwnerService: IOwnerService,
     TokenService: ITokenService,
     ManagerService: IManagerService,
-    SubscriptionService: ISubscriptionService<ISubscription<string>>
+    SubscriptionService: ISubscriptionService<ISubscription<string>>,
+    UserService: IUserService
   ) {
     this.OwnerService = OwnerService;
     this.TokenService = TokenService;
     this.ManagerService = ManagerService;
     this.SubscriptionService = SubscriptionService;
+    this.UserService = UserService;
   }
 
   registerOwner = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const existingUser = await this.OwnerService.findOwnerByEmail(
-        req.body.email
+      const email = req.body.email;
+      const existingOwner = await this.OwnerService.findOwnerByEmail(email);
+      const existingManager = await this.ManagerService.fetchManagerByEmail(
+        email
       );
-      if (existingUser) {
-        throw new AppError(
-          errorMap[ErrorType.conflict].message,
-          errorMap[ErrorType.conflict].code
-        );
+      const existingUser = await this.UserService.findUserByEmail(email);
+      if (existingManager || existingOwner || existingUser) {
+        return sendResponse(res, 409, "existing email");
       }
       const owner = await this.OwnerService.createOwner(req.body);
       if (!owner) {
@@ -300,9 +305,16 @@ class OwnerController implements IOwnerController {
   );
 
   addManagerHandler = catchAsync(
-    // dto
     async (req: Request, res: Response, next: NextFunction) => {
-      const { ownerId } = req.body;
+      const { ownerId, email } = req.body;
+      const existingOwner = await this.OwnerService.findOwnerByEmail(email);
+      const existingManager = await this.ManagerService.fetchManagerByEmail(
+        email
+      );
+      const existingUser = await this.UserService.findUserByEmail(email);
+      if (existingManager || existingOwner || existingUser) {
+        return sendResponse(res, 409, "existing email");
+      }
 
       if (!ownerId) {
         throw new AppError(
@@ -577,5 +589,6 @@ export default new OwnerController(
   OwnerService,
   TokenService,
   ManagerService,
-  SubscriptionService
+  SubscriptionService,
+  UserService
 );

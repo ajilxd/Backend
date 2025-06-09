@@ -66,8 +66,14 @@ class managerController implements IManagerController {
 
   addUser = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { managerId } = req.body;
-      console.log("req.body at add user", req.body);
+      const { managerId,email} = req.body;
+      const existingOwner =await this.OwnerService.findOwnerByEmail(email);
+      const existingManager= await this.ManagerService.fetchManagerByEmail(email);
+      const existingUser = await this.UserService.findUserByEmail(email)
+      if(existingManager||existingOwner||existingUser){
+        return sendResponse(res,409,"existing email")
+      }
+   
       const manager = await this.ManagerService.findManagerById(managerId);
       const owner = await this.OwnerService.fetchOwnerById(
         ""+manager.ownerId

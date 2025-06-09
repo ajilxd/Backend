@@ -9,4 +9,5 @@ export interface IUserService {
   getUserById(id: string): Promise<IUser>;
   getUserByemail(email: string): Promise<IUser>;
   getUsersQuery(query: UserQueryType): Promise<IUser[]>;
+  findUserByEmail(email: string): Promise<IUser | null>
 }

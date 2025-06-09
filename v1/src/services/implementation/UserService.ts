@@ -99,6 +99,11 @@ class UserService implements IUserService {
     }
   }
 
+  async findUserByEmail(email:string):Promise<IUser|null>{
+    return await this.userRepository.findOne({email})
+  }
+  
+
   async getUsersQuery(query: UserQueryType): Promise<IUser[]> {
     const result = await this.userRepository.getUsersByQuery(query);
     return result;

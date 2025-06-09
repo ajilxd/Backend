@@ -12,4 +12,5 @@ export interface IManagerService {
   toggleManagerStatus(email: string): Promise<IManager>;
   findManagerById(id: string): Promise<IManager>;
   getManagersQuery(query: ManagerQueryType): Promise<IManager[]>;
+  fetchManagerByEmail(email: string): Promise<IManager | null>
 }

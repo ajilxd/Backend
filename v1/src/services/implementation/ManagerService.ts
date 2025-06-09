@@ -12,6 +12,7 @@ import AppError from "../../errors/appError";
 import { errorMap, ErrorType } from "../../constants/response.failture";
 
 import { successMap, SuccessType } from "../../constants/response.succesful";
+import mongoose from "mongoose";
 
 class ManagerService implements IManagerService {
   private managerRepository: IManagerRepository;
@@ -39,8 +40,14 @@ class ManagerService implements IManagerService {
     return result;
   }
 
+  async fetchManagerByEmail(email:string):Promise<IManager|null>{
+    return await this.managerRepository.findOne({email})
+  }
+
   async findManagerById(id: string): Promise<IManager> {
-    const result = await this.managerRepository.findOne({ _id: id });
+       const objId =new mongoose.Types.ObjectId(id);
+     
+    const result = await this.managerRepository.findOne({ _id:objId });
     if (!result)
       throw new AppError(
         errorMap[ErrorType.NotFound].message,
