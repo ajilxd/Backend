@@ -8,7 +8,6 @@ import { ErrorType } from "../../constants/response.failture";
 import jwt from "jsonwebtoken";
 import config from "../../config";
 
-
 class AdminService implements IAdminService {
   private AdminRepository: IAdminRepository;
   constructor(AdminRepository: IAdminRepository) {
@@ -17,27 +16,24 @@ class AdminService implements IAdminService {
 
   async authenticateAdmin(email: string, password: string) {
     const adminAccount = await this.AdminRepository.findOne({ email });
-    if (!adminAccount)
-      throw new AppError("Invalid email", errorMap[ErrorType.NotFound].code,"warn");
+    if (!adminAccount) throw new AppError("Invalid email", 400, "warn");
 
     const match = await bcrypt.compare(password, adminAccount.password);
     if (!match) {
-      throw new AppError(
-        "Invalid credentials",
-        errorMap[ErrorType.Unauthorized].code,
-        "warn"
-      );
+      throw new AppError("Invalid credentials", 403, "warn");
     } else {
       if (!config.ADMIN_ACCESS_SECRET) {
         throw new AppError(
           "ADMIN_ACCESS_SECRET is not defined in the config",
-          500,"error"
+          500,
+          "error"
         );
       }
       if (!config.ADMIN_REFRESH_SECRET) {
         throw new AppError(
           "ADMIN_REFRESH_SECRET is not defined in the config",
-          500,"error"
+          500,
+          "error"
         );
       }
       const accessToken = jwt.sign(
@@ -56,7 +52,7 @@ class AdminService implements IAdminService {
           expiresIn: "7d",
         }
       );
-  
+
       const updatedAdmin = await this.AdminRepository.update(
         String(adminAccount._id),
         {
@@ -64,8 +60,8 @@ class AdminService implements IAdminService {
         }
       );
 
-      if(!updatedAdmin){
-        throw new AppError("failed to update Admin collection",500,"error")
+      if (!updatedAdmin) {
+        throw new AppError("failed to update Admin collection", 500, "error");
       }
 
       return { accessToken, refreshToken };
@@ -74,15 +70,18 @@ class AdminService implements IAdminService {
   async clearRefreshToken() {
     const admin = await this.AdminRepository.findOne({});
     if (admin && admin._id) {
-     const updateAdmin = await this.AdminRepository.resetRefreshToken(String(admin._id)); 
-     if(!updateAdmin){
-      throw new AppError("failed to reset the refresh token in database",500,"error")
-     }
-    } else {
-      throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
+      const updateAdmin = await this.AdminRepository.resetRefreshToken(
+        String(admin._id)
       );
+      if (!updateAdmin) {
+        throw new AppError(
+          "failed to reset the refresh token in database",
+          500,
+          "error"
+        );
+      }
+    } else {
+      throw new AppError(errorMap[ErrorType.NotFound].message, 500, "error");
     }
   }
 }
