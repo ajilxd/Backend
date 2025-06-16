@@ -5,9 +5,7 @@ import { ISubscriptionService } from "../../services/interface/ISubscriptionServ
 import { stripeInstance } from "../..";
 import { ISubscription } from "../../entities/ISubscription";
 import AppError from "../../errors/appError";
-import { errorMap, ErrorType } from "../../constants/response.failture";
 import { sendResponse } from "../../utils/sendResponse";
-import { successMap, SuccessType } from "../../constants/response.succesful";
 import { catchAsync } from "../../errors/catchAsyc";
 
 class SubscriptionController implements ISubscriptionController {
@@ -20,19 +18,17 @@ class SubscriptionController implements ISubscriptionController {
   AddSubscription = catchAsync(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       const { name, billingCycle, amount, description, features } = req.body;
-      console.log(req.body);
-      // creating subscription
+
       const subscription = await this.SubscriptionService.createSubcription({
         ...req.body,
         amount,
       });
-      //creating  product in stripe
+
       const product = await stripeInstance.products.create({
         name,
         metadata: { description },
       });
 
-      // creating price in stripe
       const price = await stripeInstance.prices.create({
         currency: "usd",
         product: product.id,
@@ -53,14 +49,15 @@ class SubscriptionController implements ISubscriptionController {
 
       if (!updated) {
         throw new AppError(
-          errorMap[ErrorType.ServerError].message,
-          errorMap[ErrorType.ServerError].code
+          "updating stripe datas to subscription failed",
+          500,
+          "error"
         );
       }
       sendResponse(
         res,
-        successMap[SuccessType.Created].code,
-        successMap[SuccessType.Created].message,
+        201,
+        `subscription with ${name} created succesfully`,
         updated
       );
     }
@@ -70,18 +67,9 @@ class SubscriptionController implements ISubscriptionController {
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       const data = await this.SubscriptionService.fetchSubscriptions();
       if (data.length > 0) {
-        return sendResponse(
-          res,
-          successMap[SuccessType.Accepted].code,
-          "successful",
-          data
-        );
+        return sendResponse(res, 201, "subscription fetched successfuly", data);
       } else {
-        return sendResponse(
-          res,
-          successMap[SuccessType.NoContent].code,
-          "No data "
-        );
+        return sendResponse(res, 204, "No data ");
       }
     }
   );
@@ -99,8 +87,8 @@ class SubscriptionController implements ISubscriptionController {
       }
       return sendResponse(
         res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message
+        200,
+        `updation on subscription went succesful for ${req.params.id}`
       );
     }
   );

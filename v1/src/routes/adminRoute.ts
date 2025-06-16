@@ -1,20 +1,26 @@
 import { Router } from "express";
 import AdminController from "../controllers/implementation/AdminController";
 import SubscriptionController from "../controllers/implementation/SubscriptionController";
+import { requestValidator } from "../middleware/requestValidator";
+import { AdminLoginDto } from "../dtos/admin/admin.dto";
+import { CreateSubscriptionDto } from "../dtos/subscription/subscription.dto";
 
 export const adminRouter = Router();
 
 adminRouter.post(
   "/login",
-
+  requestValidator(AdminLoginDto),
   AdminController.loginAdmin
 );
-adminRouter.get("/logout", AdminController.logoutAdmin);
-adminRouter.post("/subscription", SubscriptionController.AddSubscription);
+adminRouter.post(
+  "/subscription",
+  requestValidator(CreateSubscriptionDto),
+  SubscriptionController.AddSubscription
+);
 adminRouter.get("/subscriptions", SubscriptionController.getSubscriptions);
 
 adminRouter.patch(
-  "/update-subscription-status/:id",
+  "/toggle-subscription-status/:id",
   SubscriptionController.updateSubscriptionStatus
 );
 
@@ -23,3 +29,5 @@ adminRouter.patch(
   "/toggle-owner-status/:id",
   AdminController.toggleOwnerStatus
 );
+
+adminRouter.get("/logout", AdminController.logoutAdmin);

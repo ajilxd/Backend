@@ -1,5 +1,3 @@
-console.log("✅ SpaceService is loading...");
-
 import { errorMap, ErrorType } from "../../constants/response.failture";
 import { ISpace, TeamMember } from "../../entities/ISpace";
 import AppError from "../../errors/appError";
@@ -220,7 +218,7 @@ class SpaceService implements ISpaceService {
       );
     }
 
-    const members =data
+    const members = data;
 
     // const result = await this.SpaceRepository.getSpaceByManagerIdAndSpaceId(
     //   spaceId,
@@ -231,7 +229,10 @@ class SpaceService implements ISpaceService {
     //   throw new AppError("No spaces found with managerId and spaceId", 404);
     // }
 
-    const updated = await this.SpaceRepository.addMembersToSpace(spaceId,members);
+    const updated = await this.SpaceRepository.addMembersToSpace(
+      spaceId,
+      members
+    );
     if (!updated) {
       throw new AppError(
         errorMap[ErrorType.ServerError].message,

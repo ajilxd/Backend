@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "../utils/logger";
+import AppError from "./appError";
 
 type ErrorRequestHandler = (
   err: any,
@@ -13,17 +14,22 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   err.status = err.status || "error";
   err.level = err.level || "error";
 
-
   switch (err.level) {
     case "warn":
       logger.warn(`${err.statusCode} - ${err.message}`);
+
       break;
-    case "info":
-      logger.info(`${err.statusCode} - ${err.message}`);
-      break;
+
     case "error":
     default:
       logger.error(err.stack || err.message);
+  }
+
+  if (err.isOperational) {
+    return res.status(err.statusCode).json({
+      status: err.status,
+      message: err.message,
+    });
   }
 
   if (process.env.NODE_ENV === "development") {
@@ -34,15 +40,6 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
       stack: err.stack,
     });
   }
-
-  
-  if (err.isOperational) {
-    return res.status(err.statusCode).json({
-      status: err.status,
-      message: err.message,
-    });
-  }
-
 
   return res.status(500).json({
     status: "error",
