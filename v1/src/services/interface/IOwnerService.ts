@@ -14,7 +14,7 @@ export interface IOwnerService {
     email: string,
     password?: string,
     isGoogleLogin?: boolean
-  ): Promise<{ accessToken: string; refreshToken: string }>;
+  ): Promise<{ accessToken: string; refreshToken: string; account: IOwner }>;
   fetchOwnerSubscription(
     ownerId: string
   ): Promise<OwnerSubscriptionDetailsType>;

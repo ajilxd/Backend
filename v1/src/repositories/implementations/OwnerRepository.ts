@@ -1,10 +1,9 @@
 import { IOwnerRepository } from "../interface/IOwnerRepository";
 import { IOwner } from "../../entities/IOwner";
 import { Owner } from "../../schemas/ownerSchema";
-import { ObjectId } from "mongoose";
+import { Model, ObjectId } from "mongoose";
 
 import { BaseRepository } from "./BaseRepository";
-import AppError from "../../errors/appError";
 
 export type OwnerQueryType = {
   spaces?: string;
@@ -15,44 +14,36 @@ class OwnerRepository
   extends BaseRepository<IOwner>
   implements IOwnerRepository
 {
-  constructor() {
-    super(Owner);
+  constructor(model: Model<IOwner>) {
+    super(model);
   }
-  async blockById(id: ObjectId): Promise<IOwner | null> {
-    return await Owner.findByIdAndUpdate(
-      id,
-      { isBlocked: true },
-      { new: true }
-    ).exec();
-  }
-  async verifyAccount(email: string): Promise<IOwner | null> {
-    console.log("lets debug this together");
 
-    const updatedOwner = await Owner.findOneAndUpdate(
+  blockById(id: ObjectId): Promise<IOwner | null> {
+    return this.model
+      .findByIdAndUpdate(id, { isBlocked: true }, { new: true })
+      .exec();
+  }
+  verifyAccount(email: string): Promise<IOwner | null> {
+    return this.model.findOneAndUpdate(
       { email },
       { $set: { isVerified: true } },
       { new: true }
     );
-
-    return updatedOwner;
   }
 
-  async updationByEmail(email: string, data: object): Promise<IOwner | null> {
-    const updatedData = await Owner.findOneAndUpdate({ email }, data);
-    return updatedData;
+  updationByEmail(email: string, data: object): Promise<IOwner | null> {
+    return this.model.findOneAndUpdate({ email }, data);
   }
 
-  async findByEmail(email: string): Promise<IOwner | null> {
-    return await Owner.findOne({ email });
+  findByEmail(email: string): Promise<IOwner | null> {
+    return this.model.findOne({ email });
   }
 
-  async getOwnersByQuery(query: OwnerQueryType): Promise<IOwner[]> {
-    const result = await this.model.find(query);
-    if (!result.length) {
-      throw new AppError("No owners found", 404);
-    }
-    return result;
+  resetRefreshToken(id: ObjectId): Promise<IOwner | null> {
+    return this.model
+      .findByIdAndUpdate(id, { refreshToken: "" }, { new: true })
+      .exec();
   }
 }
 
-export default new OwnerRepository();
+export default new OwnerRepository(Owner);

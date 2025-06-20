@@ -1,3 +1,4 @@
+import { Model } from "mongoose";
 import { ITask } from "../../entities/ITask";
 import AppError from "../../errors/appError";
 import { Task } from "../../schemas/taskSchema";
@@ -19,8 +20,8 @@ export class TaskRepository
   extends BaseRepository<ITask>
   implements ITaskRepository
 {
-  constructor() {
-    super(Task);
+  constructor(model: Model<ITask>) {
+    super(model);
   }
 
   async getTaskByQuery(query: TaskQueryType): Promise<ITask[]> {
@@ -45,4 +46,4 @@ export class TaskRepository
   }
 }
 
-export default new TaskRepository();
+export default new TaskRepository(Task);

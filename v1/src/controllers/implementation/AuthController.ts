@@ -48,33 +48,34 @@ class AuthController implements IAuthController {
       const { role } = req.query;
       const { email } = req.body;
       if (!email) {
-        throw new AppError(
-          "Email is required",
-          errorMap[ErrorType.BadRequest].code
-        );
+        throw new AppError("Email is required", 400, "warn");
       }
       if (role === "manager") {
         const hasManagerAccount = Boolean(
           await this.ManagerService.findManagerByEmail(email)
         );
         if (!hasManagerAccount) {
-          throw new AppError("Invalid email", 401);
+          throw new AppError(
+            "No manager account found with this email",
+            404,
+            "warn"
+          );
         }
       } else if (role === "user") {
         const hasUserAccount = Boolean(
           await this.UserService.getUserByemail(email)
         );
         if (!hasUserAccount) {
-          throw new AppError("Invalid email", 401);
+          throw new AppError(
+            "No user account found with this email",
+            404,
+            "warn"
+          );
         }
       }
       await this.OTPService.sendOTP(email);
 
-      return sendResponse(
-        res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message
-      );
+      return sendResponse(res, 200, `Otp has been send to your inbox`);
     }
   );
 
@@ -83,7 +84,7 @@ class AuthController implements IAuthController {
       const { email, otp } = req.body;
       const { role } = req.query;
       if (!email || !otp) {
-        throw new AppError("Bad request - missing email or otp", 400);
+        throw new AppError("Bad request - missing email or otp", 400, "warn");
       }
 
       if (role === "manager") {
@@ -95,8 +96,9 @@ class AuthController implements IAuthController {
         );
         if (!owner) {
           throw new AppError(
-            "failed fetching owner details at manager login",
-            500
+            "Couldnt fetch owner details for the user",
+            500,
+            "error"
           );
         }
         const company = await this.CompanyService.findCompanyByOwnerId(
@@ -105,16 +107,17 @@ class AuthController implements IAuthController {
         if (!company) {
           throw new AppError(
             "failed fetching company details at manager login",
-            500
+            500,
+            "error"
           );
         }
         if (manager.isBlocked) {
-          return sendResponse(res, 401, "Your account is blocked");
+          return sendResponse(res, 403, "Your account is blocked");
         }
 
         const validOtp = await this.OTPService.authOTPverify(email, role, otp);
         if (!validOtp) {
-          throw new AppError("Invalid OTP", 401);
+          throw new AppError("Invalid OTP", 403, "warn");
         }
 
         const { accessToken, refreshToken } =
@@ -140,21 +143,42 @@ class AuthController implements IAuthController {
 
           .json({ accessToken, data: result });
       } else if (role === "user") {
-        // user section
-        logger.info(req.body);
         const user = await this.UserService.getUserByemail(email);
         const manager = await this.ManagerService.findManagerById(
           "" + user.managerId
         );
         const owner = await this.OwnerService.fetchOwnerById("" + user.ownerId);
 
+        if (!owner) {
+          throw new AppError(
+            "Couldnt fetch owner details for the user",
+            500,
+            "error"
+          );
+        }
+
+        const company = await this.CompanyService.findCompanyByOwnerId(
+          "" + owner._id
+        );
+        if (!company) {
+          throw new AppError(
+            "failed fetching company details at manager login",
+            500,
+            "error"
+          );
+        }
+
         if (user.isBlocked) {
-          return sendResponse(res, 401, "Your account is blocked");
+          return sendResponse(res, 403, "Your account is blocked");
         }
 
         const validOtp = await this.OTPService.authOTPverify(email, role, otp);
         if (!validOtp) {
-          throw new AppError("Invalid OTP", 401);
+          throw new AppError(
+            "Invalid OTP - you have enterd an invalid otp",
+            401,
+            "warn"
+          );
         }
 
         const { accessToken, refreshToken } =
@@ -170,6 +194,8 @@ class AuthController implements IAuthController {
             id: user.id,
             image: user.image,
             role: "user",
+            companyId: company._id,
+            companyName: company.companyName,
           };
 
           res
@@ -181,7 +207,7 @@ class AuthController implements IAuthController {
             .json({ accessToken, data: result });
         }
       } else {
-        throw new AppError("User not found", 404);
+        throw new AppError("Invalid role", 400, "warn");
       }
     }
   );

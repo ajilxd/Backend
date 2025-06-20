@@ -72,4 +72,10 @@ export interface IOwnerController {
     res: Response,
     next: NextFunction
   ) => Promise<void> | void;
+
+  requestOtpHandler: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 }

@@ -19,7 +19,7 @@ export interface ISpaceController {
     next: NextFunction
   ): Promise<void> | void;
 
-  editUserHandler(
+  removeMemberHandler(
     req: Request,
     res: Response,
     next: NextFunction

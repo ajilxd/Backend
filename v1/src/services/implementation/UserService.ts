@@ -5,8 +5,6 @@ import UserRepository, {
   UserQueryType,
 } from "../../repositories/implementations/UserRepository";
 import AppError from "../../errors/appError";
-import { errorMap, ErrorType } from "../../constants/response.failture";
-import { successMap, SuccessType } from "../../constants/response.succesful";
 
 class UserService implements IUserService {
   private userRepository: IUserRepository;
@@ -19,10 +17,7 @@ class UserService implements IUserService {
     if (result) {
       return result;
     } else {
-      throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
-      );
+      throw new AppError(`Failed to find user with id(${id})`, 404, "warn");
     }
   }
 
@@ -31,27 +26,15 @@ class UserService implements IUserService {
     if (result) {
       return result;
     } else {
-      throw new AppError(
-        errorMap[ErrorType.ServerError].message,
-        errorMap[ErrorType.ServerError].code
-      );
+      throw new AppError("Failed to create the User", 500, "error");
     }
   }
 
   async getUsers(): Promise<IUser[]> {
     const users = await this.userRepository.findAll();
-    if (!users.length) {
-      throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
-      );
-    }
 
     if (users.length === 0) {
-      throw new AppError(
-        successMap[SuccessType.NoContent].message,
-        successMap[SuccessType.NoContent].code
-      );
+      throw new AppError("No users found", 204, "warn");
     }
 
     return users;
@@ -59,17 +42,11 @@ class UserService implements IUserService {
 
   async getUserByManagerId(managerId: string): Promise<IUser[]> {
     const results = await this.userRepository.findUsersByManagerId(managerId);
-    if (!results) {
+    if (results.length === 0) {
       throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
-      );
-    }
-
-    if (results.length == 0) {
-      throw new AppError(
-        successMap[SuccessType.NoContent].message,
-        successMap[SuccessType.NoContent].code
+        `Failed to fetch users with managerId(${managerId})`,
+        404,
+        "warn"
       );
     }
 
@@ -80,11 +57,28 @@ class UserService implements IUserService {
     const updated = await this.userRepository.update(id, user);
     if (!updated) {
       throw new AppError(
-        errorMap[ErrorType.BadRequest].message,
-        errorMap[ErrorType.BadRequest].code
+        `Failed to update the user with id(${id})`,
+        500,
+        "error"
       );
     }
     return updated;
+  }
+
+  async removeUserSpace(userId: string, spaceId: string): Promise<IUser> {
+    const updated = await this.userRepository.removeSpaceFromUser(
+      userId,
+      spaceId
+    );
+    if (updated) {
+      return updated;
+    } else {
+      throw new AppError(
+        `Failed updating user space removal on user collection with userId(${userId}) of space(${spaceId})`,
+        500,
+        "error"
+      );
+    }
   }
 
   async getUserByemail(email: string): Promise<IUser> {
@@ -93,8 +87,9 @@ class UserService implements IUserService {
       return result;
     } else {
       throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
+        `Failed to find the user with email(${email})`,
+        404,
+        "warn"
       );
     }
   }

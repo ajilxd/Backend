@@ -4,7 +4,7 @@ import {
   MediaKind,
   RtpParameters,
 } from "mediasoup/node/lib/rtpParametersTypes";
-
+import { logger } from "../utils/logger";
 
 export const producers = new Map<string, any>();
 export const consumers = new Map<string, any>();
@@ -23,7 +23,7 @@ const cleanupPeerResources = (socket: CustomSocket) => {
       const producer = producers.get(producerId);
       if (producer) {
         producer.close();
-        console.log(`Closed producer ${producerId} from ${socket.id}`);
+        logger.info(`Closed producer ${producerId} from ${socket.id}`);
         producers.delete(producerId);
       }
     }
@@ -31,25 +31,25 @@ const cleanupPeerResources = (socket: CustomSocket) => {
 
   if (socket.consumers) {
     const resources = routerResources.get(socket.meetingId!);
-    console.log("consumers before deletion of lefteee's consumers ", consumers);
+    // console.log("consumers before deletion of lefteee's consumers ", consumers);
     for (const consumerId of socket.consumers) {
       const consumer = consumers.get(consumerId);
       if (consumer) {
         consumer.close();
-        console.log(`Closed consumer ${consumerId} from ${socket.id}`);
+        logger.info(`Closed consumer ${consumerId} from ${socket.id}`);
         consumers.delete(consumerId);
-        console.log(
-          "consumers after deletion of lefteee's consumers ",
-          consumers
-        );
+        // console.log(
+        //   "consumers after deletion of lefteee's consumers ",
+        //   consumers
+        // );
       }
       if (resources) {
         resources.consumers.delete(consumer);
         const hasDeletedconsumer = resources.consumers.has(consumer);
-        console.log(
-          "is the consumer of leftee getting deleted",
-          hasDeletedconsumer
-        );
+        // console.log(
+        //   "is the consumer of leftee getting deleted",
+        //   hasDeletedconsumer
+        // );
       }
     }
   }
@@ -58,7 +58,7 @@ const cleanupPeerResources = (socket: CustomSocket) => {
     if (transport.appData.userId === socket.userId) {
       transport.close();
       transports.delete(transportId);
-      console.log(`Closed transport ${transportId} for user ${socket.userId}`);
+      logger.info(`Closed transport ${transportId} for user ${socket.userId}`);
     }
   }
 };
@@ -87,11 +87,11 @@ export function registerPeerSocketHandlers(
         connectingTransports.add(transportId);
 
         await transport.connect({ dtlsParameters });
-        console.log(`[${socket.id}] Transport ${transportId} connected`);
+        logger.info(`[${socket.id}] Transport ${transportId} connected`);
 
         callback({});
       } catch (error: any) {
-        console.error(`[${socket.id}] connect-transport error:`, error.message);
+        logger.error(`[${socket.id}] connect-transport error:`, error.message);
         callback({ error: error.message });
       } finally {
         connectingTransports.delete(transportId);
@@ -117,7 +117,7 @@ export function registerPeerSocketHandlers(
       },
       callback: (response: { error?: string; id?: string }) => void
     ) => {
-      console.log(
+      logger.info(
         `[${socket.id}] produce called for ${kind} via transport ${transportId}`
       );
 
@@ -136,18 +136,18 @@ export function registerPeerSocketHandlers(
         if (resources) {
           resources.producers.add(producer);
         } else {
-          console.log("no router resources map found ");
+          logger.info("no router resources map found ");
         }
 
         socket.producers = socket.producers || new Set<string>();
         socket.producers.add(producer.id);
 
-        console.log(`[${socket.id}] ${kind} producer created: ${producer.id}`);
+        logger.info(`[${socket.id}] ${kind} producer created: ${producer.id}`);
         // console.log("router resources", routerResources);
 
         callback({ id: producer.id });
       } catch (err: any) {
-        console.error(`[${socket.id}] Produce error:`, err.message);
+        logger.error(`[${socket.id}] Produce error:`, err.message);
         callback({ error: err.message });
       }
     }
@@ -159,7 +159,7 @@ export function registerPeerSocketHandlers(
       { meetingId, userId }: { meetingId: string; userId: string },
       callback: (response: { error?: string; producers?: any[] }) => void
     ) => {
-      console.log("Im join meeting event listener", { meetingId, userId });
+      // console.log("Im join meeting event listener", { meetingId, userId });
       try {
         const resources = routerResources.get(meetingId);
         if (!resources) {
@@ -178,21 +178,19 @@ export function registerPeerSocketHandlers(
           }))
           .filter((entry) => entry.userId !== userId);
 
-        const Producers = Array.from(resources.producers)
-          .map((producer) => ({
-            id: producer.id,
-            kind: producer.kind,
-            userId: producer.appData.userId,
-          }))
-
+        const Producers = Array.from(resources.producers).map((producer) => ({
+          id: producer.id,
+          kind: producer.kind,
+          userId: producer.appData.userId,
+        }));
 
         socket.to(meetingId).emit("new-participant", {
           userId,
           socketId: socket.id,
-          producers: Producers,// try testing here
+          producers: Producers, // try testing here
         });
 
-        callback({ producers:Producers });
+        callback({ producers: Producers });
       } catch (err: any) {
         console.error(`join-meeting error:`, err);
         callback({ error: err.message });
@@ -227,7 +225,7 @@ export function registerPeerSocketHandlers(
         if (!resources) {
           throw new Error(
             "failed to find the router resources for this meetingid " +
-            meetingId
+              meetingId
           );
         }
         const router = resources.router;
@@ -285,15 +283,14 @@ export function registerPeerSocketHandlers(
     cleanupPeerResources(socket);
   });
 
-  socket.on("terminate-meeting",(data)=>{
+  socket.on("terminate-meeting", (data) => {
     socket.to(data.meetingId).emit("terminate-meeting");
-    console.log("Meeting has been ended and terminate meeting has initiated")
-  })
+    console.log("Meeting has been ended and terminate meeting has initiated");
+  });
 
-  socket.on("refresh-meeting",(data)=>{
-    console.log("hey im refreshser")
+  socket.on("refresh-meeting", (data) => {
+    console.log("hey im refreshser");
     socket.to(data.spaceId).emit("refresh-meeting");
-    console.log("meeting refreshed for - "+data.spaceId)
-  })
+    console.log("meeting refreshed for - " + data.spaceId);
+  });
 }
-

@@ -5,7 +5,6 @@ import nodemailer from "nodemailer";
 const fs = require("fs").promises;
 import dotenv from "dotenv";
 import { logger } from "./logger";
-import { errorMap, ErrorType } from "../constants/response.failture";
 
 dotenv.config();
 
@@ -42,10 +41,7 @@ const sendEmail = async (
     logger.info(`${new Date().toLocaleString()} :Email sent ...`);
   } catch (error) {
     logger.error(`${new Date().toLocaleString()} : error sending email`);
-    throw new AppError(
-      "failed sending email",
-      errorMap[ErrorType.ServerError].code
-    );
+    throw new AppError("failed sending email", 500, "error");
   }
 };
 

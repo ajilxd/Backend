@@ -6,7 +6,6 @@ import { IOwnerService } from "../../services/interface/IOwnerService";
 import { IAdminService } from "../../services/interface/IAdminService";
 import { catchAsync } from "../../errors/catchAsyc";
 import { sendResponse } from "../../utils/sendResponse";
-import { successMap, SuccessType } from "../../constants/response.succesful";
 import { logger } from "../../utils/logger";
 
 class AdminController implements IAdminController {
@@ -45,7 +44,6 @@ class AdminController implements IAdminController {
 
   showOwners = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      console.log(req.query);
       const page = Number(req.query.page) || 1;
       const itemPerPage = Number(req.query.itemPerPage) || 5;
 
@@ -54,12 +52,10 @@ class AdminController implements IAdminController {
       logger.info({ length: users.length, totalPage });
       const skip = (page - 1) * itemPerPage;
       const paginatedUsers = users.slice(skip, skip + itemPerPage);
-      return sendResponse(
-        res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message,
-        { users: paginatedUsers, totalPage }
-      );
+      return sendResponse(res, 200, `Succesfully fetched owners`, {
+        users: paginatedUsers,
+        totalPage,
+      });
     }
   );
 

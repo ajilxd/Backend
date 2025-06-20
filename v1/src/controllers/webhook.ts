@@ -10,9 +10,9 @@ import { errorMap, ErrorType } from "../constants/response.failture";
 
 import { logger } from "../utils/logger";
 import { successMap, SuccessType } from "../constants/response.succesful";
-import { features } from "process";
+
 import AppError from "../errors/appError";
-import { ISubscription } from "../entities/ISubscription";
+
 import OwnerRepository from "../repositories/implementations/OwnerRepository";
 
 const endpointSecret = config.STRIPE_WEBHOOK_SECRET_KEY;

@@ -1,3 +1,4 @@
+import { Model } from "mongoose";
 import { IDoc } from "../../entities/IDoc";
 import { Doc } from "../../schemas/docSchema";
 import { IDocumentRepository } from "../interface/IDocRepository";
@@ -7,17 +8,17 @@ class DocumentRepository
   extends BaseRepository<IDoc>
   implements IDocumentRepository
 {
-  constructor() {
-    super(Doc);
+  constructor(model: Model<IDoc>) {
+    super(model);
   }
 
-  async getDocumentsBySpaceId(spaceId: string): Promise<IDoc[]> {
-    return await this.model.find({ spaceId });
+  getDocumentsBySpaceId(spaceId: string): Promise<IDoc[]> {
+    return this.model.find({ spaceId });
   }
 
-  async deleteDocument(docId: string): Promise<IDoc | null> {
-    return await this.model.findByIdAndDelete(docId).exec();
+  deleteDocument(docId: string): Promise<IDoc | null> {
+    return this.model.findByIdAndDelete(docId).exec();
   }
 }
 
-export default new DocumentRepository();
+export default new DocumentRepository(Doc);

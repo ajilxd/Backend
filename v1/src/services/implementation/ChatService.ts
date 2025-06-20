@@ -15,7 +15,7 @@ class ChatService implements IChatService {
     if (result) {
       return result;
     } else {
-      throw new AppError("failed at creating chat", 500);
+      throw new AppError("failed at creating chat", 500, "error");
     }
   }
 
@@ -24,7 +24,7 @@ class ChatService implements IChatService {
     if (updated) {
       return updated;
     } else {
-      throw new AppError("failed updating chat", 500);
+      throw new AppError("failed updating chat", 500, "error");
     }
   }
 

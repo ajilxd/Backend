@@ -5,8 +5,6 @@ import {
   UserRole,
 } from "../utils/JWT";
 import { sendResponse } from "../utils/sendResponse";
-import { errorMap, ErrorType } from "../constants/response.failture";
-import { successMap, SuccessType } from "../constants/response.succesful";
 
 import { Admin } from "../schemas/adminSchema";
 import { User } from "../schemas/userSchema";
@@ -17,11 +15,7 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
   const role = req.headers["x-user-role"];
 
   if (!role || typeof role !== "string") {
-    return sendResponse(
-      res,
-      errorMap[ErrorType.BadRequest].code,
-      "Role header missing"
-    );
+    return sendResponse(res, 400, "Role header missing");
   }
 
   let refreshTokenName: string;
@@ -50,40 +44,24 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
       userRole = UserRole.Admin;
       break;
     default:
-      return sendResponse(
-        res,
-        errorMap[ErrorType.BadRequest].code,
-        "Invalid user role"
-      );
+      return sendResponse(res, 400, "Invalid user role");
   }
 
   const refreshToken = req.cookies[refreshTokenName];
 
   if (!refreshToken) {
-    return sendResponse(
-      res,
-      errorMap[ErrorType.Unauthorized].code,
-      "Refresh token not found"
-    );
+    return sendResponse(res, 401, "Refresh token not found");
   }
 
   const user = verifyRefreshToken(userRole, refreshToken);
   if (!user || typeof user !== "object" || !("id" in user)) {
-    return sendResponse(
-      res,
-      errorMap[ErrorType.Forbidden].code,
-      "Invalid or expired refresh token"
-    );
+    return sendResponse(res, 403, "Invalid or expired refresh token");
   }
 
   const dbUser = await model.findOne({ refreshToken });
 
   if (!dbUser) {
-    return sendResponse(
-      res,
-      errorMap[ErrorType.Unauthorized].code,
-      "Unrecognized token - login again"
-    );
+    return sendResponse(res, 401, "Unrecognized token - login again");
   }
 
   const newAccessToken = generateAccessToken(userRole, {
@@ -92,10 +70,7 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
     role: userRole,
   });
 
-  return sendResponse(
-    res,
-    successMap[SuccessType.Accepted].code,
-    "Access token refreshed",
-    { accessToken: newAccessToken }
-  );
+  return sendResponse(res, 201, "Access token refreshed", {
+    accessToken: newAccessToken,
+  });
 };

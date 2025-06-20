@@ -83,7 +83,7 @@ class SubscriptionController implements ISubscriptionController {
         { isActive: !existingSubscription.isActive }
       );
       if (!updated) {
-        throw new AppError("error updating subscription status", 500);
+        throw new AppError("error updating subscription status", 500, "error");
       }
       return sendResponse(
         res,

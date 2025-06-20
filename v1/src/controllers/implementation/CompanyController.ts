@@ -8,7 +8,6 @@ import { catchAsync } from "../../errors/catchAsyc";
 import { sendResponse } from "../../utils/sendResponse";
 import { successMap, SuccessType } from "../../constants/response.succesful";
 import AppError from "../../errors/appError";
-import { logger } from "../../utils/logger";
 
 class CompanyController implements ICompanyController {
   private ownerservice: IOwnerService;
@@ -19,13 +18,20 @@ class CompanyController implements ICompanyController {
   }
 
   registerCompanyHandler = catchAsync(
-    async (req: Request, res: Response, next: NextFunction) => {  
-      const existingCompany = (await this.companyservice.findAllCompanies()).find((i)=>i.companyName===req.body.companyName);
-      if(existingCompany){
-        return sendResponse(res,409,"existing company name")
+    async (req: Request, res: Response, next: NextFunction) => {
+      const existingCompany = (
+        await this.companyservice.findAllCompanies()
+      ).find((i) => i.companyName === req.body.companyName);
+      if (existingCompany) {
+        return sendResponse(res, 409, "existing company name");
       }
       const result = await this.companyservice.createCompany(req.body);
-      const updated =await this.ownerservice.updateOwner(req.body.ownerId,{company:{companyName:result.companyName,companyId:""+result._id}})
+      const updated = await this.ownerservice.updateOwner(req.body.ownerId, {
+        company: {
+          companyName: result.companyName,
+          companyId: "" + result._id,
+        },
+      });
       return sendResponse(
         res,
         successMap[SuccessType.Created].code,

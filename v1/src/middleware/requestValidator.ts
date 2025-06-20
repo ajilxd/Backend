@@ -9,7 +9,7 @@ export const requestValidator = (dtoClass: any): RequestHandler => {
     next: NextFunction
   ): Promise<void> => {
     const dtoObject = plainToInstance(dtoClass, req.body);
-    console.log(req.body);
+
     const errors = await validate(dtoObject, {
       whitelist: true,
       forbidNonWhitelisted: true,

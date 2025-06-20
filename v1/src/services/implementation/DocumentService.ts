@@ -15,7 +15,7 @@ class DocumentService implements IDocumentService {
     if (result) {
       return result;
     } else {
-      throw new AppError("Failed creating document", 500);
+      throw new AppError("Failed creating document", 500, "error");
     }
   }
 
@@ -27,16 +27,16 @@ class DocumentService implements IDocumentService {
     if (updated) {
       return updated;
     } else {
-      throw new AppError("Failed updating document", 500);
+      throw new AppError("Failed updating document", 500, "error");
     }
   }
 
   async getDocuments(spaceId: string): Promise<IDoc[] | null> {
     const result = await this.DocumentRepository.getDocumentsBySpaceId(spaceId);
-    if (result) {
+    if (result.length > 0) {
       return result;
     } else {
-      throw new AppError("Documents not found", 404);
+      throw new AppError("Documents not found", 404, "warn");
     }
   }
 
@@ -45,7 +45,7 @@ class DocumentService implements IDocumentService {
     if (result) {
       return result;
     } else {
-      throw new AppError("Failed deleting document", 500);
+      throw new AppError("Failed deleting document", 500, "error");
     }
   }
 }

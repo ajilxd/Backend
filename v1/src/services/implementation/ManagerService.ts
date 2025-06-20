@@ -9,9 +9,6 @@ import { IUserRepository } from "../../repositories/interface/IUserRepository";
 import UserRepository from "../../repositories/implementations/UserRepository";
 
 import AppError from "../../errors/appError";
-import { errorMap, ErrorType } from "../../constants/response.failture";
-
-import { successMap, SuccessType } from "../../constants/response.succesful";
 
 class ManagerService implements IManagerService {
   private managerRepository: IManagerRepository;
@@ -33,8 +30,9 @@ class ManagerService implements IManagerService {
     const result = await this.managerRepository.findOne({ email });
     if (!result)
       throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
+        `No manager accound found with this email  - ${email}`,
+        404,
+        "warn"
       );
     return result;
   }
@@ -42,10 +40,7 @@ class ManagerService implements IManagerService {
   async findManagerById(id: string): Promise<IManager> {
     const result = await this.managerRepository.findOne({ _id: id });
     if (!result)
-      throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
-      );
+      throw new AppError(`No manager found by this Id - ${id}`, 404, "warn");
     return result;
   }
 
@@ -60,16 +55,10 @@ class ManagerService implements IManagerService {
         }
       );
       if (!updated)
-        throw new AppError(
-          errorMap[ErrorType.ServerError].message,
-          errorMap[ErrorType.ServerError].code
-        );
+        throw new AppError(`Failed to update the Manager `, 500, "error");
       return updated;
     } else {
-      throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
-      );
+      throw new AppError(`No manager accound go by this email - ${email}`, 404);
     }
   }
 
@@ -83,16 +72,14 @@ class ManagerService implements IManagerService {
       const updated = await this.managerRepository.update(id, managerData);
       if (!updated) {
         throw new AppError(
-          errorMap[ErrorType.ServerError].message,
-          errorMap[ErrorType.ServerError].code
+          `Failed to update the Manager of id - ${id}`,
+          500,
+          "error"
         );
       }
       return updated;
     } else {
-      throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
-      );
+      throw new AppError(`No manager account go by this Id - ${id}`, 404);
     }
   }
 
@@ -100,22 +87,16 @@ class ManagerService implements IManagerService {
     const managers = await this.managerRepository.getManagers(ownerId);
     if (!managers.length) {
       throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
+        `No managers found with this owner Id -${ownerId}`,
+        404
       );
     }
-    if (managers.length > 0) {
-      return managers;
-    } else {
-      throw new AppError(
-        successMap[SuccessType.NoContent].message,
-        successMap[SuccessType.NoContent].code
-      );
-    }
+
+    return managers;
   }
 
   async getManagersQuery(query: ManagerQueryType): Promise<IManager[]> {
-    const result = await this.managerRepository.getManagersByQuery(query);
+    const result = await this.managerRepository.find(query);
     return result;
   }
 }

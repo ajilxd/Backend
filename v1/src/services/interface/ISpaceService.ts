@@ -15,11 +15,10 @@ export interface ISpaceService {
     managerId: string,
     data: Partial<TeamMember>
   ): Promise<ISpace>;
-  editMember(
+  removeMember(
     spaceId: string,
     memberId: string,
-    managerId: string,
-    data: Partial<TeamMember>
+    managerId: string
   ): Promise<ISpace>;
 
   updateSpaceQuery(
