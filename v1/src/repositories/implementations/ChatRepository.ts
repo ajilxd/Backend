@@ -9,7 +9,7 @@ class ChatRepository extends BaseRepository<IChat> implements IChatRepository {
     super(model);
   }
   findByRoomId(room: string): Promise<IChat[] | []> {
-    return Chat.find({ room });
+    return this.model.find({ room });
   }
 }
 
