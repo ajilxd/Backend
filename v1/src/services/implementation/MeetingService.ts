@@ -24,8 +24,9 @@ class MeetingService implements IMeetingService {
       return updated;
     } else {
       throw new AppError(
-        errorMap[ErrorType.ServerError].message,
-        errorMap[ErrorType.ServerError].code
+        `Failed to update meeting - id  ${data._id} - internal server error`,
+        500,
+        "error"
       );
     }
   }

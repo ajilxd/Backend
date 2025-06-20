@@ -11,12 +11,10 @@ import ManagerService from "../../services/implementation/ManagerService";
 import SubscriptionService from "../../services/implementation/SubscriptionService";
 import { ISubscription } from "../../entities/ISubscription";
 import { ISubscriptionService } from "../../services/interface/ISubscriptionService";
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 import { stripeInstance } from "../..";
 import AppError from "../../errors/appError";
-import { errorMap, ErrorType } from "../../constants/response.failture";
 import { sendResponse } from "../../utils/sendResponse";
-import { successMap, SuccessType } from "../../constants/response.succesful";
 import { logger } from "../../utils/logger";
 import { IOwner } from "../../entities/IOwner";
 import { IUserService } from "../../services/interface/IUserService";
@@ -50,95 +48,65 @@ class OwnerController implements IOwnerController {
       const existingManager = await this.ManagerService.fetchManagerByEmail(
         email
       );
-      const existingUser = await this.UserService.findUserByEmail(email);
-      if (existingManager || existingOwner || existingUser) {
-        return sendResponse(res, 409, "existing email");
+      if (existingUser) {
+        throw new AppError("existing email", 409, "warn");
       }
-      const owner = await this.OwnerService.createOwner(req.body);
+      const formattedEmail = req.body.email.toLowerCase();
+      const owner = await this.OwnerService.createOwner({
+        ...req.body,
+        email: formattedEmail,
+      });
       if (!owner) {
-        throw new AppError(
-          "Failed creating owner in db",
-          errorMap[ErrorType.ServerError].code
-        );
+        throw new AppError("Failed creating owner in db", 500, "error");
       }
 
-      if (owner) {
-        const { name, email } = owner;
-        const stripeCustomerData = await stripeInstance.customers.create({
-          email,
-          name,
-          metadata: { userId: "" + owner._id },
-        });
+      const { name, email } = owner;
+      const stripeCustomerData = await stripeInstance.customers.create({
+        email,
+        name,
+        metadata: { userId: "" + owner._id },
+      });
 
-        await this.OwnerService.updateOwner("" + owner._id, {
-          stripe_customer_id: stripeCustomerData.id,
-        });
+      await this.OwnerService.updateOwner("" + owner._id, {
+        stripe_customer_id: stripeCustomerData.id,
+      });
 
-        await otpService.sendOTP(email);
+      await otpService.sendOTP(email);
 
-        return sendResponse(
-          res,
-          successMap[SuccessType.Created].code,
-          successMap[SuccessType.Created].message
-        );
-      }
+      return sendResponse(
+        res,
+        201,
+        `owner account created succesfully for the user - ${owner.name} with id ${owner._id}`
+      );
     }
   );
 
   AuthenticateOtp = catchAsync(
-    async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-      //  create dto with email and otp
+    async (req: Request, res: Response, next: NextFunction) => {
       const { email, otp } = req.body;
 
       const validUser = await otpService.verifyOTP(email, otp);
-      if (!validUser) {
-        logger.warn("invalid otp entered for ", email);
-        sendResponse(
-          res,
-          errorMap[ErrorType.Unauthorized].code,
-          errorMap[ErrorType.Unauthorized].message
-        );
-      } else {
-        logger.info(`otp verified for ${validUser.email}`);
-        sendResponse(
-          res,
-          successMap[SuccessType.Ok].code,
-          successMap[SuccessType.Ok].message
-        );
-      }
+
+      logger.info(`otp verified for ${validUser.email}`);
+      sendResponse(res, 200, "Otp verification was succesful");
     }
   );
 
   loginUser = catchAsync(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       const { email, password } = req.body;
-      const validUser = await this.OwnerService.checkOwner(email, password);
-
-      if (!validUser.isVerified)
-        throw new AppError(
-          "Email should be verified",
-          errorMap[ErrorType.Forbidden].code
-        );
-
-      if (validUser.isBlocked) {
-        throw new AppError("Account got blocked", 403);
-      }
-
-      if (validUser) {
-        const { accessToken, refreshToken } =
-          await this.OwnerService.authenticateOwner(email, password);
-        console.log({ accessToken, refreshToken });
-        res
-          .status(200)
-          .cookie("ownerRefreshToken", refreshToken, {
-            httpOnly: true,
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-            secure: false,
-            sameSite: "lax",
-            path: "/",
-          })
-          .json({ accessToken, data: validUser });
-      }
+      const { accessToken, refreshToken, account } =
+        await this.OwnerService.authenticateOwner(email, password);
+      res
+        .status(200)
+        .cookie("ownerRefreshToken", refreshToken, {
+          httpOnly: true,
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          secure: false,
+          sameSite: "lax",
+          path: "/",
+        })
+        .json({ accessToken, data: account });
     }
   );
 
@@ -151,11 +119,16 @@ class OwnerController implements IOwnerController {
         path: "/",
       });
 
-      return sendResponse(
-        res,
-        successMap[SuccessType.Accepted].code,
-        successMap[SuccessType.Accepted].message
-      );
+      return sendResponse(res, 201, "Logout went succesful - owner");
+    }
+  );
+
+  requestOtpHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      const { email } = req.body;
+
+      await otpService.sendOTP(email);
+      return sendResponse(res, 201, `Otp has been send to your email ${email}`);
     }
   );
 
@@ -167,15 +140,14 @@ class OwnerController implements IOwnerController {
       await otpService.sendOTP(email);
       return sendResponse(
         res,
-        successMap[SuccessType.Accepted].code,
-        successMap[SuccessType.Accepted].message
+        201,
+        `Otp has be resended to your email ${email}`
       );
     }
   );
 
   handleGoogleClick = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      // request and response dto
       const { email } = req.body;
       const existingUser = await this.OwnerService.findOwnerByEmail(email);
       if (existingUser) {
@@ -184,17 +156,19 @@ class OwnerController implements IOwnerController {
         const { accessToken, refreshToken } =
           await this.OwnerService.authenticateOwner(email, "", true);
         if (accountData.isBlocked) {
-          throw new AppError("Account is blocked", 403);
+          throw new AppError(
+            `Your owner account(${accountData.name}) is disabled`,
+            403,
+            "warn"
+          );
         }
 
-        res
-          .status(successMap[SuccessType.Ok].code)
-          .cookie("ownerRefreshToken", refreshToken, {
-            httpOnly: true,
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-            sameSite: "lax",
-            secure: false,
-          });
+        res.status(200).cookie("ownerRefreshToken", refreshToken, {
+          httpOnly: true,
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          sameSite: "lax",
+          secure: false,
+        });
         return res.json({ accessToken, data: accountData });
       } else {
         const generatedPassword = String(Math.random().toString(36).slice(-8));
@@ -247,14 +221,14 @@ class OwnerController implements IOwnerController {
         await this.TokenService.deleteToken(email);
         return sendResponse(
           res,
-          successMap[SuccessType.Ok].code,
-          successMap[SuccessType.Ok].message
+          200,
+          `password has been succesfully reset - ${email}`
         );
       } else {
         return sendResponse(
           res,
-          errorMap[ErrorType.Unauthorized].code,
-          errorMap[ErrorType.Unauthorized].message
+          401,
+          "Invalid link or expired link - you have used an expired or invalid password link"
         );
       }
     }
@@ -263,42 +237,29 @@ class OwnerController implements IOwnerController {
   forgotPasswordHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { email } = req.body;
-      if (!email) {
-        throw new AppError(
-          errorMap[ErrorType.ValidationError].message,
-          errorMap[ErrorType.ValidationError].code
-        );
-      }
+
       const user = await this.OwnerService.findOwnerByEmail(email);
       if (!user) {
         throw new AppError(
-          errorMap[ErrorType.NotFound].message,
-          errorMap[ErrorType.NotFound].code
+          `No owner account found with this email ${email}`,
+          404,
+          "warn"
         );
       }
       await this.TokenService.createPasswordToken(email);
-      return sendResponse(
-        res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message
-      );
+      return sendResponse(res, 200, `Password link has been sent your email`);
     }
   );
 
   updateProfile = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { ownerId } = req.body;
-      if (!ownerId) {
-        throw new AppError(
-          errorMap[ErrorType.ValidationError].message,
-          errorMap[ErrorType.ValidationError].code
-        );
-      }
       const updated = await this.OwnerService.updateOwner(ownerId, req.body);
+      
       return sendResponse(
         res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message,
+        200,
+        "Owner profile has been updated succesfully",
         updated
       );
     }
@@ -311,95 +272,45 @@ class OwnerController implements IOwnerController {
       const existingManager = await this.ManagerService.fetchManagerByEmail(
         email
       );
-      const existingUser = await this.UserService.findUserByEmail(email);
+      const existingUser = await this.UserService.getUserByemail(email);
       if (existingManager || existingOwner || existingUser) {
         return sendResponse(res, 409, "existing email");
       }
 
-      if (!ownerId) {
-        throw new AppError(
-          errorMap[ErrorType.ValidationError].message,
-          errorMap[ErrorType.ValidationError].code
-        );
-      }
       const validOwner = await this.OwnerService.fetchOwnerById(ownerId);
-      console.log("hey valid owner");
       if (!validOwner) {
         throw new AppError(
-          errorMap[ErrorType.NotFound].message,
-          errorMap[ErrorType.NotFound].code
+          `No owner account found with this id - ${ownerId}`,
+          404,
+          "warn"
         );
       }
       const managerData = await this.ManagerService.createManager(req.body);
-      if (!managerData) {
-        throw new AppError(
-          errorMap[ErrorType.ServerError].message,
-          errorMap[ErrorType.ServerError].code
-        );
-      }
+
       sendResponse(
         res,
-        successMap[SuccessType.Created].code,
-        successMap[SuccessType.Created].message
+        201,
+        `Manager account created for ${managerData.name} succesfully`,
+        managerData
       );
-    }
-  );
-
-  getManagerHandler = catchAsync(
-    async (req: Request, res: Response, next: NextFunction) => {
-      const { id } = req.params;
-      const validId = Types.ObjectId.isValid(id);
-      if (validId) {
-        const manager = await this.ManagerService.getManagers(id);
-        if (manager) {
-          return sendResponse(
-            res,
-            successMap[SuccessType.Accepted].code,
-            successMap[SuccessType.Accepted].message,
-            manager
-          );
-        } else {
-          return sendResponse(
-            res,
-            successMap[SuccessType.NoContent].code,
-            successMap[SuccessType.NoContent].message
-          );
-        }
-      } else {
-        return sendResponse(
-          res,
-          errorMap[ErrorType.ValidationError].code,
-          errorMap[ErrorType.ValidationError].message
-        );
-      }
     }
   );
 
   getAllManagersHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      // dto
       const { id } = req.params;
       const managers = await this.ManagerService.getManagers(id);
       if (managers) {
         if (managers.length > 0) {
           sendResponse(
             res,
-            successMap[SuccessType.Ok].code,
-            successMap[SuccessType.Ok].message,
+            200,
+            `Succesfully fetched managers with owner Id ${id}`,
             managers
           );
         } else {
-          sendResponse(
-            res,
-            successMap[SuccessType.NoContent].code,
-            successMap[SuccessType.NoContent].message
-          );
+          sendResponse(res, 204, `Found no managers for the Owner id ${id}`);
         }
-      } else {
-        throw new AppError(
-          errorMap[ErrorType.BadRequest].message,
-          errorMap[ErrorType.BadRequest].code
-        );
       }
     }
   );
@@ -408,25 +319,15 @@ class OwnerController implements IOwnerController {
     async (req: Request, res: Response, next: NextFunction) => {
       const { ownerId } = req.body;
       const { id } = req.params;
-
-      const validmanagerId = Types.ObjectId.isValid(id);
-      const validOwnerId = Types.ObjectId.isValid(ownerId);
-      if (!validOwnerId || !validmanagerId) {
-        throw new AppError(
-          errorMap[ErrorType.BadRequest].message,
-          errorMap[ErrorType.BadRequest].code
-        );
-      }
       const managerData = await this.ManagerService.findManagerById(id);
-      logger.info("blocking user..");
       if (managerData && managerData.ownerId == ownerId) {
         const data = await this.ManagerService.toggleManagerStatus(
           managerData.email
         );
         return sendResponse(
           res,
-          successMap[SuccessType.Ok].code,
-          successMap[SuccessType.Ok].message,
+          200,
+          `Manager(${managerData.name}) status has been succesfully updated `,
           data
         );
       }
@@ -437,16 +338,12 @@ class OwnerController implements IOwnerController {
     async (req: Request, res: Response, next: NextFunction) => {
       const subscriptions = await this.SubscriptionService.fetchSubscriptions();
       if (subscriptions.length == 0) {
-        return sendResponse(
-          res,
-          successMap[SuccessType.NoContent].code,
-          successMap[SuccessType.NoContent].message
-        );
+        return sendResponse(res, 204, "No subscriptions found");
       } else {
         return sendResponse(
           res,
-          successMap[SuccessType.Ok].code,
-          successMap[SuccessType.Ok].message,
+          200,
+          `subscriptions found ${subscriptions.length} in total`,
           subscriptions
         );
       }
@@ -456,50 +353,44 @@ class OwnerController implements IOwnerController {
   showOwnersHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       if (!req.params.id) {
-        throw new AppError(
-          errorMap[ErrorType.BadRequest].message,
-          errorMap[ErrorType.BadRequest].code
-        );
+        throw new AppError("No owner id found in path params", 400, "warn");
       }
       const owner = await this.OwnerService.findOwnerByEmail(req.params.id);
       if (!owner) {
         return sendResponse(
           res,
-          errorMap[ErrorType.NotFound].code,
-          errorMap[ErrorType.NotFound].message
+          400,
+          `No owner account found with this id - ${req.params.id}`
         );
       }
-      return sendResponse(
-        res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message,
-        owner
-      );
+      return sendResponse(res, 200, `${owner.name}'s data`, owner);
     }
   );
 
   getOwnerSubscription = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       if (!req.params.id) {
-        throw new AppError(
-          errorMap[ErrorType.BadRequest].message,
-          errorMap[ErrorType.BadRequest].code
-        );
+        throw new AppError("No owner id found at path params", 400, "warn");
       }
 
       const ownerData = await this.OwnerService.fetchOwnerById(req.params.id);
       if (!ownerData) {
-        throw new AppError("owner not found with input id", 404);
+        throw new AppError(
+          `No owner account found with this id ${req.params.id}`,
+          404,
+          "warn"
+        );
       }
 
       if (!ownerData.subscription) {
-        throw new AppError(
-          successMap[SuccessType.NoContent].message,
-          successMap[SuccessType.NoContent].code
-        );
+        throw new AppError("No subscription found for the Owner", 404, "warn");
       }
       if (!ownerData.subscription.stripe_subscription_id) {
-        throw new AppError("failed to find the stripe subscription id", 500);
+        throw new AppError(
+          "failed to find the stripe subscription id",
+          500,
+          "warn"
+        );
       }
 
       const plainOwnerData = ownerData.toObject();
@@ -508,7 +399,7 @@ class OwnerController implements IOwnerController {
         await stripeInstance.subscriptions.retrieve(
           ownerData.subscription.stripe_subscription_id
         );
-      console.log(plainOwnerData);
+
       const subscription = plainOwnerData.subscription;
       const result = {
         ...subscription,
@@ -520,8 +411,8 @@ class OwnerController implements IOwnerController {
       console.log("active subscription for " + req.params.id + "" + result);
       return sendResponse(
         res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message,
+        200,
+        `Owner subscription data retrived succesfully`,
         result
       );
     }
@@ -531,10 +422,7 @@ class OwnerController implements IOwnerController {
     async (req: Request, res: Response, next: NextFunction) => {
       const { id } = req.params;
       if (!id) {
-        throw new AppError(
-          errorMap[ErrorType.NotFound].message,
-          errorMap[ErrorType.NotFound].code
-        );
+        throw new AppError("No owner id found at path params", 400, "warn");
       }
 
       const ownerData = await this.OwnerService.fetchOwnerById(id);
@@ -542,17 +430,12 @@ class OwnerController implements IOwnerController {
         const { invoices } = ownerData;
         sendResponse(
           res,
-          successMap[SuccessType.Ok].code,
-          successMap[SuccessType.Ok].message,
+          200,
+          `Succesfully fetched invoices data for the owner id - ${id}`,
           invoices
         );
       } else {
-        logger.info("Owner doesnt have invoices");
-        sendResponse(
-          res,
-          successMap[SuccessType.NoContent].code,
-          successMap[SuccessType.NoContent].message
-        );
+        sendResponse(res, 404, `No owner invoices found`);
       }
     }
   );
@@ -561,10 +444,7 @@ class OwnerController implements IOwnerController {
     async (req: Request, res: Response, next: NextFunction) => {
       let { field, value } = req.query;
       if (typeof field !== "string" || typeof value !== "string") {
-        throw new AppError(
-          errorMap[ErrorType.BadRequest].message,
-          errorMap[ErrorType.BadRequest].code
-        );
+        throw new AppError("Bad request", 400);
       }
       const allowedFields = ["_id"];
       if (!allowedFields.includes("" + field)) {

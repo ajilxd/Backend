@@ -3,7 +3,6 @@ import { ISpaceService } from "../../services/interface/ISpaceService";
 import { ISpaceController } from "../interface/ISpaceController";
 
 import AppError from "../../errors/appError";
-import { errorMap, ErrorType } from "../../constants/response.failture";
 import { SpaceStatus } from "../../entities/ISpace";
 import SpaceService from "../../services/implementation/SpaceService";
 import { sendResponse } from "../../utils/sendResponse";
@@ -27,26 +26,20 @@ class SpaceController implements ISpaceController {
 
   addSpaceHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { ownerId, companyName,managers } = req.body;
-      console.log("managers from the req.body of space add",managers)
+      const { ownerId, name } = req.body;
       if (!ownerId) {
-        throw new AppError("No ownerId found", 404);
+        throw new AppError("No managerId found", 404, "warn");
       }
-      const companies = await Space.find();
-      const samenameComp = companies.filter(
-        (i) => i.companyName === companyName
-      );
-      const existingCompanyname = await Space.findOne({ companyName });
-      console.log(existingCompanyname);
-      if (existingCompanyname || samenameComp.length > 0) {
-        return sendResponse(res, 400, "existing company name");
-    
+      const existingSpaceName = await Space.findOne({ name });
+
+      if (existingSpaceName) {
+        throw new AppError("duplicates found- company name", 400);
       }
       const data = await this.SpaceService.createSpace(ownerId, req.body);
       if (data) {
         sendResponse(res, 201, "Space created succesfully", data);
       } else {
-        throw new AppError("Failed at adding the space", 500);
+        throw new AppError("Failed at adding the space", 500, "error");
       }
     }
   );
@@ -54,12 +47,11 @@ class SpaceController implements ISpaceController {
   editSpaceHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { ownerId, spaceId, team } = req.body;
-      
 
-      console.log("req body at space controller",req.body)
+      console.log("req body at space controller", req.body);
 
       if (!ownerId || !spaceId) {
-        throw new AppError("No ownerId or spaceId provided", 400);
+        throw new AppError("No ownerId or spaceId provided", 400, "warn");
       }
 
       const updated = await this.SpaceService.updateSpace(
@@ -68,23 +60,21 @@ class SpaceController implements ISpaceController {
         req.body
       );
 
-
       if (updated) {
         sendResponse(res, 200, "Updation went successful", updated);
       } else {
-        throw new AppError("Internal server error", 500);
+        throw new AppError("Internal server error", 500, "error");
       }
     }
   );
 
   addUserHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { managerId, spaceId,team } = req.body;
+      const { managerId, spaceId, team } = req.body;
       console.log("req body at add user controller", JSON.stringify(req.body));
       if (!managerId || !spaceId) {
-        throw new AppError("No managerId ,SpaceId found", 400);
+        throw new AppError("No managerId ,SpaceId found", 400, "warn");
       }
-
 
       const members: any[] = team?.members ?? [];
 
@@ -108,7 +98,7 @@ class SpaceController implements ISpaceController {
       const result = await this.SpaceService.addMember(
         spaceId,
         managerId,
-       team.members
+        team.members
       );
 
       if (result) {
@@ -119,37 +109,27 @@ class SpaceController implements ISpaceController {
     }
   );
 
-  // editUserHandler = catchAsync(
-  //   async (req: Request, res: Response, next: NextFunction) => {
-  //     console.log('req.body at edit user of space',req.body )
+  removeMemberHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { managerId, spaceId, memberId } = req.body;
+      if (!managerId || !spaceId || !memberId) {
+        throw new AppError("No managerId ,SpaceId,memberId found", 400, "warn");
+      }
+      const result = await this.SpaceService.removeMember(
+        spaceId,
+        memberId,
+        managerId
+      );
 
-  //    const spaceId = req.body.spaceId
-  //     const managerId =req.body.managerId;
-  //     const memberId = req.body.memberId;
+      await this.UserService.removeUserSpace(memberId, spaceId);
 
-
-  //     const statusUpdate =req.body.statusUpdate
-     
-  //     if (!managerId || !spaceId || !memberId) {
-  //       throw new AppError("No managerId ,SpaceId,memberId found", 400);
-  //     }
-  
-
-  //     const result = await this.SpaceService.editMember(
-  //       spaceId,
-  //       memberId,
-  //       managerId,
-  //       req.body,
-  //       statusUpdate
-  //     );
-
-  //     if (result) {
-  //       sendResponse(res, 200, "Member updation went succesfull", result);
-  //     } else {
-  //       throw new AppError("Internal server error", 500);
-  //     }
-  //   }
-  // );
+      if (result) {
+        sendResponse(res, 200, "Member updation went succesfull", result);
+      } else {
+        throw new AppError("Internal server error", 500, "error");
+      }
+    }
+  );
 
   getSpacesByField = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -158,14 +138,15 @@ class SpaceController implements ISpaceController {
 
       if (typeof field !== "string" || typeof value !== "string") {
         throw new AppError(
-          errorMap[ErrorType.BadRequest].message,
-          errorMap[ErrorType.BadRequest].code
+          "Type of filed and value must be string",
+          400,
+          "warn"
         );
       }
 
       const allowedFields = ["owner", "_id", "companyId", "managers", "userId"];
       if (!allowedFields.includes("" + field)) {
-        throw new AppError("Invalid query", 400);
+        throw new AppError("Invalid query", 400, "warn");
       }
       if (field === "managers") {
         field = "managers.managerId";
@@ -177,15 +158,16 @@ class SpaceController implements ISpaceController {
       const query: Record<string, mongoose.Types.ObjectId> = {};
 
       query[field] = new mongoose.Types.ObjectId(value);
-      console.log("query", query);
+
       const result = await this.SpaceService.getSpaces(query);
       if (!result) {
         throw new AppError(
-          errorMap[ErrorType.ServerError].message,
-          errorMap[ErrorType.ServerError].code
+          `No spaces found with this query  ${field} and ${value}`,
+          404,
+          "warn"
         );
       }
-      return sendResponse(res, 200, "succesfully fetched spaces ", result);
+      return sendResponse(res, 200, "succesfully fetched spaces", result);
     }
   );
 
@@ -196,15 +178,16 @@ class SpaceController implements ISpaceController {
       let updated;
       const validSpaceId = await this.SpaceService.getSpaces({ _id: spaceId });
       if (!validSpaceId) {
-        throw new AppError("No space found with this id ", 404);
+        throw new AppError("No space found with this id ", 404, "warn");
       }
 
       switch (updateType) {
         case "status":
           if (!updateData.status || !SpaceStatus.includes(updateData.status)) {
             throw new AppError(
-              errorMap[ErrorType.BadRequest].message,
-              errorMap[ErrorType.BadRequest].code
+              `Bad request - Status updation failed`,
+              400,
+              "warn"
             );
           }
           updated = await this.SpaceService.updateSpaceQuery(
@@ -213,17 +196,21 @@ class SpaceController implements ISpaceController {
           );
           break;
         default:
-          throw new AppError("Invalid update Type", 400);
+          throw new AppError("Invalid update Type", 400, "warn");
       }
       if (updated) {
         return sendResponse(
           res,
           200,
-          "Task status updated succesfully",
+          "Space  status updated succesfully",
           updated
         );
       } else {
-        throw new AppError("Failed updating Task on field " + updateType, 500);
+        throw new AppError(
+          "Failed updating space on field " + updateType,
+          500,
+          "error"
+        );
       }
     }
   );

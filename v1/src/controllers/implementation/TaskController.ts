@@ -5,7 +5,6 @@ import { ITaskService } from "../../services/interface/ITaskService";
 import { ITaskController } from "../interface/ITaskControllers";
 import { sendResponse } from "../../utils/sendResponse";
 import AppError from "../../errors/appError";
-import { errorMap, ErrorType } from "../../constants/response.failture";
 import { catchAsync } from "../../errors/catchAsyc";
 import mongoose from "mongoose";
 
@@ -17,32 +16,29 @@ class TaskController implements ITaskController {
 
   addTaskHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      console.log(req.body);
       const result = await this.TaskService.createTask(req.body);
       if (result) {
         return sendResponse(res, 201, "Task created succesfully", result);
       } else {
-        throw new AppError("Failed creating task", 500);
+        throw new AppError("Failed creating task", 500, "error");
       }
     }
   );
 
   editTaskHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      console.log("req body at updating task", req.body);
       const { taskId } = req.body;
       const updated = await this.TaskService.updateTask(taskId, req.body);
       if (updated) {
         return sendResponse(res, 200, "Task updated succesfully", updated);
       } else {
-        throw new AppError("Failed updating task", 500);
+        throw new AppError("Failed updating task", 500, "error");
       }
     }
   );
 
   updateTaskByField = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      console.log(req.body);
       const { taskId } = req.params;
       const { updateType, updateData } = req.body;
       let updated;
@@ -51,8 +47,9 @@ class TaskController implements ITaskController {
         case "status":
           if (!updateData.status || !TaskStatus.includes(updateData.status)) {
             throw new AppError(
-              errorMap[ErrorType.BadRequest].message,
-              errorMap[ErrorType.BadRequest].code
+              "Bad reqeust - Type missing at updation",
+              400,
+              "warn"
             );
           }
 
@@ -61,15 +58,16 @@ class TaskController implements ITaskController {
         case "assignee":
           if (!updateData.assignee) {
             throw new AppError(
-              errorMap[ErrorType.BadRequest].message,
-              errorMap[ErrorType.BadRequest].code
+              "Bad request - Type missing at updation",
+              400,
+              "warn"
             );
           }
           updated = await this.TaskService.updateTaskQuery(taskId, updateData);
           break;
 
         default:
-          throw new AppError("Invalid update type", 400);
+          throw new AppError("Invalid update type", 400, "warn");
       }
       if (updated) {
         return sendResponse(
@@ -89,14 +87,15 @@ class TaskController implements ITaskController {
 
       if (typeof field !== "string" || typeof value !== "string") {
         throw new AppError(
-          errorMap[ErrorType.BadRequest].message,
-          errorMap[ErrorType.BadRequest].code
+          "Bad request - Invalid type of field and value",
+          400,
+          "warn"
         );
       }
 
       const allowedFields = ["spaceId", "userId", "creatorId", "taskId"];
       if (!allowedFields.includes("" + field)) {
-        throw new AppError("Invalid query", 400);
+        throw new AppError("Invalid query", 400, "warn");
       }
 
       if (field === "userId") {
@@ -117,7 +116,11 @@ class TaskController implements ITaskController {
           result
         );
       } else {
-        throw new AppError("No tasks found", 404);
+        throw new AppError(
+          `No tasks found with :- ${field} and value :- ${value}`,
+          404,
+          "warn"
+        );
       }
     }
   );

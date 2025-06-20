@@ -7,6 +7,7 @@ import type {
   Transport,
 } from "mediasoup/node/lib/types";
 import { Producer, Consumer } from "mediasoup/node/lib/types";
+import { logger } from "../utils/logger";
 
 let worker: Worker | null = null;
 
@@ -24,14 +25,14 @@ export const transports = new Map<string, Transport>();
 export async function createWorker(): Promise<Worker> {
   if (worker) return worker;
   worker = await mediasoup.createWorker();
-  console.log(" Mediasoup Worker created");
+  logger.info(" Mediasoup Worker created");
 
   return worker;
 }
 
 export async function createRouter(meetingId: string): Promise<Router> {
   if (!worker) {
-    throw new Error(" Mediasoup worker has not been created yet");
+    throw new Error("Mediasoup worker has not been created yet");
   }
 
   const mediaCodecs: RtpCodecCapability[] = [
@@ -57,7 +58,7 @@ export async function createRouter(meetingId: string): Promise<Router> {
     consumers: new Set(),
   });
 
-  console.log(`Router created for meeting: ${meetingId}`);
+  logger.info(`Router created for meeting: ${meetingId}`);
   return router;
 }
 
@@ -83,7 +84,7 @@ export async function createWebRtcTransport(
 
   transports.set(transport.id, transport);
 
-  console.log(
+  logger.info(
     `WebRTC Transport created for meeting: ${meetingId}, transportId: ${transport.id}`
   );
 
@@ -94,7 +95,7 @@ export function removeRouter(meetingId: string): void {
   const resources = routerResources.get(meetingId);
 
   if (!resources) {
-    console.warn(` No router found for meeting: ${meetingId}`);
+    logger.warn(` No router found for meeting: ${meetingId}`);
     return;
   }
 
@@ -102,7 +103,7 @@ export function removeRouter(meetingId: string): void {
     try {
       consumer.close();
     } catch (err) {
-      console.error(`Error closing consumer: ${err}`);
+      logger.error(`Error closing consumer: ${err}`);
     }
   });
 
@@ -110,7 +111,7 @@ export function removeRouter(meetingId: string): void {
     try {
       producer.close();
     } catch (err) {
-      console.error(` Error closing producer: ${err}`);
+      logger.error(` Error closing producer: ${err}`);
     }
   });
 
@@ -118,18 +119,18 @@ export function removeRouter(meetingId: string): void {
     try {
       transport.close();
     } catch (err) {
-      console.error(`Error closing transport: ${err}`);
+      logger.error(`Error closing transport: ${err}`);
     }
   });
 
   try {
     resources.router.close();
   } catch (err) {
-    console.error(`Error closing router: ${err}`);
+    logger.error(`Error closing router: ${err}`);
   }
 
   routerResources.delete(meetingId);
-  console.log(
+  logger.info(
     `Successfully removed router and cleaned resources for meeting: ${meetingId}`
   );
 }
@@ -142,7 +143,7 @@ export function removeParticipant(
   const resources = routerResources.get(meetingId);
 
   if (!resources) {
-    console.warn(` No router found for meeting: ${meetingId}`);
+    logger.warn(` No router found for meeting: ${meetingId}`);
     return;
   }
   const consumers = Array.from(resources.consumers).filter(
@@ -191,7 +192,7 @@ export function removeParticipant(
     }
   });
 
-    const newRouterResources = {
+  const newRouterResources = {
     router: resources.router,
     producers: new Set(newProducers),
     consumers: new Set(newConsumers),
@@ -199,7 +200,7 @@ export function removeParticipant(
   };
   routerResources.set(meetingId, newRouterResources);
 
-  console.log(
+  logger.info(
     `cleaned transport ${transports.length} , producer ${producers.length} , consumer of the user ${consumers.length}" + name`
   );
 }

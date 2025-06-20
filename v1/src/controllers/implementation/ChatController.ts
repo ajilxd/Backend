@@ -16,13 +16,18 @@ class ChatController implements IChatController {
     async (req: Request, res: Response, next: NextFunction) => {
       const { room } = req.params;
       if (!room) {
-        throw new AppError("room id is required", 400);
+        throw new AppError("room id is required", 400, "warn");
       }
 
       const result = await this.ChatService.findChatsByRoom(room);
 
       if (result.length > 0) {
-        return sendResponse(res, 200, "Fetched chats for room " + room, result);
+        return sendResponse(
+          res,
+          200,
+          "Succesfully fetched chats for room " + room,
+          result
+        );
       } else {
         return sendResponse(res, 204);
       }

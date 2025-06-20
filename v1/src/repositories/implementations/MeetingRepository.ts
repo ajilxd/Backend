@@ -4,12 +4,13 @@ import { Meeting } from "../../schemas/meetingSchema";
 import { BaseRepository } from "./BaseRepository";
 import AppError from "../../errors/appError";
 import { errorMap, ErrorType } from "../../constants/response.failture";
+import { Model } from "mongoose";
 class MeetingRepository
   extends BaseRepository<IMeeting>
   implements IMeetingRepository
 {
-  constructor() {
-    super(Meeting);
+  constructor(model: Model<IMeeting>) {
+    super(model);
   }
   async findMeetingsBySpaceId(spaceId: string): Promise<IMeeting[]> {
     const result = await this.model.find({ spaceId });
@@ -29,4 +30,4 @@ class MeetingRepository
   }
 }
 
-export default new MeetingRepository();
+export default new MeetingRepository(Meeting);

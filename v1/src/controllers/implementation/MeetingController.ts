@@ -5,8 +5,6 @@ import { IMeetingController } from "../interface/IMeetingController";
 import { IUserService } from "../../services/interface/IUserService";
 import { IManagerService } from "../../services/interface/IManagerService";
 import { sendResponse } from "../../utils/sendResponse";
-import { errorMap, ErrorType } from "../../constants/response.failture";
-import { successMap, SuccessType } from "../../constants/response.succesful";
 import { catchAsync } from "../../errors/catchAsyc";
 import MeetingService from "../../services/implementation/MeetingService";
 import UserService from "../../services/implementation/UserService";
@@ -18,7 +16,8 @@ import {
   removeRouter,
   routerResources,
 } from "../mediasoupHandler";
-
+import { AppConfig } from "aws-sdk";
+import AppError from "../../errors/appError";
 
 class MeetingController implements IMeetingController {
   private MeetingService: IMeetingService;
@@ -36,7 +35,6 @@ class MeetingController implements IMeetingController {
 
   addMeetingHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      console.log("im call maker from backend", req.body);
       const { hostId, role, spaceId, isInstant } = req.body;
       const meetingId = uuidv4();
       let validUser;
@@ -49,8 +47,8 @@ class MeetingController implements IMeetingController {
       if (!validUser) {
         return sendResponse(
           res,
-          errorMap[ErrorType.BadRequest].code,
-          errorMap[ErrorType.BadRequest].message
+          400,
+          `No valid user found of the id -${hostId}`
         );
       }
 
@@ -61,11 +59,7 @@ class MeetingController implements IMeetingController {
           (entry) => entry.status === "active"
         );
         if (hasActiveMeetings.length > 0) {
-          return sendResponse(
-            res,
-            errorMap[ErrorType.Forbidden].code,
-            "Already an active call is running"
-          );
+          return sendResponse(res, 403, "Already an active call is running");
         }
       }
       const created = await this.MeetingService.createMeeting({
@@ -99,19 +93,19 @@ class MeetingController implements IMeetingController {
           },
           meeting: created,
         };
-       
+
         return sendResponse(
           res,
-          successMap[SuccessType.Created].code,
-          successMap[SuccessType.Created].message,
+          201,
+          `Instant call has been succesfully initiated by ${hostId}`,
           result
         );
       }
 
       return sendResponse(
         res,
-        successMap[SuccessType.Created].code,
-        successMap[SuccessType.Created].message,
+        201,
+        `A meeting has succesfully scheduled`,
         created
       );
     }
@@ -130,16 +124,16 @@ class MeetingController implements IMeetingController {
       if (!validUser) {
         return sendResponse(
           res,
-          errorMap[ErrorType.BadRequest].code,
-          errorMap[ErrorType.BadRequest].message
+          400,
+          `No valid user found with this -id(${hostId})`
         );
       }
 
       const updated = await this.MeetingService.updateMeeting(req.body);
       return sendResponse(
         res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message,
+        200,
+        `Meeting has been succesfully updated - ${updated._id}`,
         updated
       );
     }
@@ -159,8 +153,8 @@ class MeetingController implements IMeetingController {
       if (!validUser) {
         return sendResponse(
           res,
-          errorMap[ErrorType.BadRequest].code,
-          "invalid user"
+          400,
+          `No valid user found with this id(${joineeId})`
         );
       }
 
@@ -173,7 +167,7 @@ class MeetingController implements IMeetingController {
         if (existingMeeting.length === 0) {
           return sendResponse(
             res,
-            errorMap[ErrorType.BadRequest].code,
+            400,
             "No actve meeting found for this space"
           );
         }
@@ -204,7 +198,11 @@ class MeetingController implements IMeetingController {
         )[0];
       }
       if (!existingMeeting) {
-        throw new Error("invalid meeting id,NO meetings found");
+        throw new AppError(
+          `No meeting found with this meeting Id ${meetingId}`,
+          400,
+          "warn"
+        );
       }
       const { participants } = existingMeeting;
       let participantData;
@@ -243,8 +241,8 @@ class MeetingController implements IMeetingController {
 
       return sendResponse(
         res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message,
+        200,
+        "User has been succesfully joined to the meeting",
         result
       );
     }
@@ -262,18 +260,14 @@ class MeetingController implements IMeetingController {
       }
 
       if (!validUser) {
-        return sendResponse(
-          res,
-          errorMap[ErrorType.BadRequest].code,
-          errorMap[ErrorType.BadRequest].message
-        );
+        return sendResponse(res, 400, `Invalid host id spotted`);
       }
 
       const deleted = await this.MeetingService.deleteMeeting(meetingId);
       return sendResponse(
         res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message,
+        200,
+        `Meeting has been deleted succesfully`,
         deleted
       );
     }
@@ -285,15 +279,15 @@ class MeetingController implements IMeetingController {
       if (!spaceId) {
         return sendResponse(
           res,
-          errorMap[ErrorType.BadRequest].code,
-          errorMap[ErrorType.BadRequest].message
+          400,
+          `Space id is required for fetching meetings`
         );
       }
       const result = await this.MeetingService.getMeetings(spaceId);
       return sendResponse(
         res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message,
+        200,
+        `Succesfully fetched meetings for ${spaceId}`,
         result
       );
     }
@@ -305,8 +299,8 @@ class MeetingController implements IMeetingController {
       if (!meetingId || !hostId || !role || !spaceId) {
         return sendResponse(
           res,
-          errorMap[ErrorType.BadRequest].code,
-          errorMap[ErrorType.BadRequest].message
+          400,
+          `MeetingId || host Id  || role || space Id are missing `
         );
       }
 
@@ -318,11 +312,7 @@ class MeetingController implements IMeetingController {
       }
 
       if (!validUser) {
-        return sendResponse(
-          res,
-          errorMap[ErrorType.BadRequest].code,
-          "Invalid user"
-        );
+        return sendResponse(res, 404, "Invalid user");
       }
       const meetings = await this.MeetingService.getMeetings(spaceId);
       let existingMeeting;
@@ -334,15 +324,15 @@ class MeetingController implements IMeetingController {
       if (!existingMeeting) {
         return sendResponse(
           res,
-          errorMap[ErrorType.NotFound].code,
-          errorMap[ErrorType.NotFound].message
+          404,
+          `No meeting found with this ${meetingId}`
         );
       }
       if (existingMeeting?.hostId !== hostId) {
         return sendResponse(
           res,
-          errorMap[ErrorType.Forbidden].code,
-          errorMap[ErrorType.Forbidden].message
+          403,
+          `You arent host to terminate this meeting`
         );
       }
       const updated = await this.MeetingService.updateMeeting({
@@ -352,12 +342,7 @@ class MeetingController implements IMeetingController {
       });
       removeRouter(meetingId);
 
-      return sendResponse(
-        res,
-        successMap[SuccessType.Ok].code,
-        "Call ended successfully",
-        updated
-      );
+      return sendResponse(res, 200, "Call ended successfully", updated);
     }
   );
 
@@ -367,8 +352,8 @@ class MeetingController implements IMeetingController {
       if (!userId || !meetingId || !role) {
         return sendResponse(
           res,
-          errorMap[ErrorType.BadRequest].code,
-          errorMap[ErrorType.BadRequest].message
+          400,
+          `userId or meetingId or role is meesing  - Please try again`
         );
       }
       let validUser;
@@ -379,11 +364,7 @@ class MeetingController implements IMeetingController {
       }
 
       if (!validUser) {
-        return sendResponse(
-          res,
-          errorMap[ErrorType.BadRequest].code,
-          "Invalid user"
-        );
+        return sendResponse(res, 400, "Invalid user");
       }
       const meetings = await this.MeetingService.getMeetings(spaceId);
       if (!meetings) {
@@ -396,7 +377,7 @@ class MeetingController implements IMeetingController {
         )[0];
       }
       if (!existingMeeting) {
-        throw new Error("invalid meeting id,NO meetings found");
+        throw new AppError("Invalid meeting id,No meetings found", 404, "warn");
       }
       const { participants } = existingMeeting;
       let participantData;
@@ -411,11 +392,7 @@ class MeetingController implements IMeetingController {
         participants: { ...participants, ...updatedParticipantData },
       });
       removeParticipant(meetingId, userId, name);
-      return sendResponse(
-        res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message
-      );
+      return sendResponse(res, 200, "leaving from meeting was succesfull");
     }
   );
 }

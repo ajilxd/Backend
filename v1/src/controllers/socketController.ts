@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io";
 import ChatRepository from "../repositories/implementations/ChatRepository";
+import { logger } from "../utils/logger";
 
 interface CustomSocket extends Socket {
   senderId?: string;
@@ -41,8 +42,8 @@ export function registerSocketHandlers(io: Server, socket: CustomSocket) {
 
     userSocketMap[userId].sockets.add(socket.id);
     socket.userId = userId;
-    console.log(`✅ User ${userId} registered with socket ${socket.id}`);
-    console.log("hey iam user socket map",userSocketMap)
+    logger.info(`✅ User ${userId} registered with socket ${socket.id}`);
+    console.log("hey iam user socket map", userSocketMap);
   });
 
   socket.on("join-room", (data) => {
@@ -63,12 +64,12 @@ export function registerSocketHandlers(io: Server, socket: CustomSocket) {
       existing.lastSeen = new Date().toISOString();
     }
     io.to(data.room).emit("online-users", roomSocketMap[room]);
-    console.log(`➡️ User ${socket.id} joined room: ${room}`);
+    logger.info(`➡️ User ${socket.id} joined room: ${room}`);
   });
 
   socket.on("send-message", async (data) => {
-    console.log(data);
-    console.log(
+    // console.log(data);
+    logger.info(
       `📨 Message from ${data.senderName} to room ${data.room}`,
       data
     );
@@ -78,7 +79,7 @@ export function registerSocketHandlers(io: Server, socket: CustomSocket) {
 
   socket.on("disconnect", () => {
     const { userId } = socket;
-    console.log(`❌ User disconnected: ${socket.id}`);
+    logger.info(`❌ User disconnected: ${socket.id}`);
 
     if (userId && userSocketMap[userId]) {
       userSocketMap[userId].sockets.delete(socket.id);
@@ -112,7 +113,7 @@ export function registerSocketHandlers(io: Server, socket: CustomSocket) {
   });
 
   socket.on("typing", (data) => {
-    console.log("data from typing", data);
+    // console.log("data from typing", data);
     const { userId, room } = data;
     if (userId && roomSocketMap[room]) {
       roomSocketMap[room].map((i) => {
@@ -132,11 +133,11 @@ export function registerSocketHandlers(io: Server, socket: CustomSocket) {
         };
       });
     socket.to(room).emit("typing", typingFiltered);
-    console.log("user socket map",userSocketMap)
+    // console.log("user socket map", userSocketMap);
   });
 
   socket.on("stop-typing", (data) => {
-    console.log("data from stop typing", data);
+    // console.log("data from stop typing", data);
     const { userId, room } = data;
     if (userId && roomSocketMap[room]) {
       roomSocketMap[room].map((i) => {

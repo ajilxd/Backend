@@ -30,7 +30,7 @@ class TaskService implements ITaskService {
     if (updated) {
       return updated;
     } else {
-      throw new AppError("Failed updating Task", 500);
+      throw new AppError("Failed updating Task", 500, "error");
     }
   }
 
@@ -52,7 +52,8 @@ class TaskService implements ITaskService {
     } else {
       throw new AppError(
         "Failed updating space collection with query" + updateQuery,
-        500
+        500,
+        "error"
       );
     }
   }

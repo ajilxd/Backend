@@ -28,14 +28,22 @@ class Authservice implements IAuthService {
     if (role === "manager") {
       const managerData = await this.ManagerRepository.findOne({ email });
       if (!managerData) {
-        throw new AppError("No manager account found", 500);
+        throw new AppError("No manager account found", 404, "error");
       }
       if (!config.GENERAL_ACCESS_SECRET) {
-        throw new AppError("No secrets provided for jwt - [manager,user]", 500);
+        throw new AppError(
+          "No secrets provided for jwt - [manager,user]",
+          500,
+          "error"
+        );
       }
 
       if (!config.GENERAL_REFRESH_SECRET) {
-        throw new AppError("No secrets provided for jwt - [manager,user]", 500);
+        throw new AppError(
+          "No secrets provided for jwt - [manager,user]",
+          500,
+          "error"
+        );
       }
 
       const accessToken = jwt.sign(
@@ -55,20 +63,25 @@ class Authservice implements IAuthService {
         { refreshToken }
       );
       if (!updated || !updated.refreshToken) {
-        throw new AppError("failed updating refresh token on mongodb", 500);
+        throw new AppError(
+          "failed updating refresh token on mongodb",
+          500,
+          "error"
+        );
       }
 
       if (!refreshToken || !accessToken) {
         throw new AppError(
           "failed to generate accesstoken and refreshtoken",
-          500
+          500,
+          "error"
         );
       }
       return { refreshToken, accessToken };
     } else if (role === "user") {
       const userData = await this.UserRepository.findOne({ email });
       if (!userData) {
-        throw new AppError("No user account found ", 500);
+        throw new AppError("No user account found ", 404, "warn");
       }
       if (!config.GENERAL_ACCESS_SECRET) {
         throw new AppError("No secrets provided for jwt - [manager,user]", 500);
@@ -94,7 +107,11 @@ class Authservice implements IAuthService {
         refreshToken,
       });
       if (!updated || !updated.refreshToken) {
-        throw new AppError("failed updating refresh token on mongodb", 500);
+        throw new AppError(
+          "failed updating refresh token on mongodb",
+          500,
+          "error"
+        );
       }
       return { accessToken, refreshToken };
     } else {
@@ -106,13 +123,13 @@ class Authservice implements IAuthService {
     if (role === "manager") {
       const managerData = await this.ManagerRepository.findOne({ email });
       if (!managerData) {
-        throw new AppError("failed to find the manager account ", 404);
+        throw new AppError("failed to find the manager account ", 404, "warn");
       }
       await this.ManagerRepository.resetRefreshToken("" + managerData._id);
     } else if (role === "user") {
       const userData = await this.ManagerRepository.findOne({ email });
       if (!userData) {
-        throw new AppError("failed to find the manager account ", 404);
+        throw new AppError("failed to find the manager account ", 404, "warn");
       }
       await this.ManagerRepository.resetRefreshToken("" + userData._id);
     }

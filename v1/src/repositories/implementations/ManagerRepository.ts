@@ -1,3 +1,4 @@
+import { Model } from "mongoose";
 import { IManager } from "../../entities/IManager";
 import AppError from "../../errors/appError";
 import { IManagerRepository } from "../../repositories/interface/IManagerRepository";
@@ -13,11 +14,11 @@ class ManagerRepository
   extends BaseRepository<IManager>
   implements IManagerRepository
 {
-  constructor() {
-    super(Manager);
+  constructor(model: Model<IManager>) {
+    super(model);
   }
 
-  async getManagers(id: string): Promise<IManager[]> {
+  getManagers(id: string): Promise<IManager[]> {
     return this.model.find({ ownerId: id });
   }
 
@@ -28,6 +29,12 @@ class ManagerRepository
     }
     return result;
   }
+
+  resetRefreshToken(id: string): Promise<IManager | null> {
+    return this.model
+      .findByIdAndUpdate(id, { refreshToken: "" }, { new: true })
+      .exec();
+  }
 }
 
-export default new ManagerRepository();
+export default new ManagerRepository(Manager);

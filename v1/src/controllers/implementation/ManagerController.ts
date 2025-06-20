@@ -9,12 +9,9 @@ import { catchAsync } from "../../errors/catchAsyc";
 import { Request, Response, NextFunction } from "express";
 import { IUser } from "../../entities/IUser";
 import AppError from "../../errors/appError";
-import { logger } from "../../utils/logger";
 import { sendResponse } from "../../utils/sendResponse";
-import { successMap, SuccessType } from "../../constants/response.succesful";
 import { IOwnerService } from "../../services/interface/IOwnerService";
 import OwnerService from "../../services/implementation/OwnerService";
-import { errorMap, ErrorType } from "../../constants/response.failture";
 import mongoose from "mongoose";
 import { INotificationService } from "../../services/interface/INotificationService";
 import NotificationService from "../../services/implementation/NotificationService";
@@ -41,9 +38,7 @@ class managerController implements IManagerController {
     async (req: Request, res: Response, next: NextFunction) => {
       const managerId = req.body.managerId;
       if (!managerId) {
-        return res
-          .status(400)
-          .json({ success: false, data: "Manager id required" });
+        throw new AppError("Manager id required", 400, "warn");
       }
       const managerData = req.body;
       const updated = await this.ManagerService.updateManager(
@@ -51,42 +46,30 @@ class managerController implements IManagerController {
         managerData
       );
 
-      res.status(200).json({
-        success: true,
-        data: { message: "Manager updated successfully" },
-      });
-      return sendResponse(
-        res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message,
-        updated
-      );
+      return sendResponse(res, 200, "profile updation went succesful", updated);
     }
   );
 
   addUser = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { managerId,email} = req.body;
-      const existingOwner =await this.OwnerService.findOwnerByEmail(email);
-      const existingManager= await this.ManagerService.fetchManagerByEmail(email);
-      const existingUser = await this.UserService.findUserByEmail(email)
-      if(existingManager||existingOwner||existingUser){
-        return sendResponse(res,409,"existing email")
-      }
-   
+      const { managerId } = req.body;
       const manager = await this.ManagerService.findManagerById(managerId);
       const owner = await this.OwnerService.fetchOwnerById(
         ""+manager.ownerId
       );
       if (!manager) {
-        return res
-          .status(400)
-          .json({ success: false, data: "Manager not found" });
+        throw new AppError(
+          `No manager Found with the managerId ${managerId}`,
+          400,
+          "warn"
+        );
       }
       if (!owner) {
-        return res
-          .status(400)
-          .json({ success: false, data: "Owner data not found" });
+        throw new AppError(
+          `No owner Found with the manager ${managerId}`,
+          400,
+          "warn"
+        );
       }
 
       if (manager && owner) {
@@ -95,7 +78,12 @@ class managerController implements IManagerController {
           ownerId: owner._id,
           companyId: manager.companyId,
         });
-        return res.status(200).json({ success: true, data: user });
+        return sendResponse(
+          res,
+          200,
+          `User (${req.body.name}) has beedn added succesfully `,
+          user
+        );
       }
     }
   );
@@ -106,13 +94,21 @@ class managerController implements IManagerController {
 
       const manager = await this.ManagerService.findManagerById(managerId);
       if (!manager) {
-        res.status(400).json({ success: false, data: "Manager not found" });
+        throw new AppError(
+          `No manager account found with the managerId - id(${managerId})`,
+          404
+        );
       } else {
-        const users: any = await this.UserService.getUserByManagerId(managerId);
+        const users = await this.UserService.getUserByManagerId(managerId);
         if (users && users.length > 0) {
-          res.status(200).json({ success: true, data: users });
+          return sendResponse(res, 200, "Succesfully fetched users", users);
         } else {
-          res.status(201).json({ success: false, data: "No users found" });
+          return sendResponse(
+            res,
+            204,
+            `No users found with this managerId ${managerId}`,
+            users
+          );
         }
       }
     }
@@ -122,39 +118,32 @@ class managerController implements IManagerController {
     async (req: Request, res: Response, next: NextFunction) => {
       const { managerId } = req.body;
       const userId = req.params.id as string;
-      console.log({ userId, managerId });
       if (!managerId || !userId) {
-        return res
-          .status(400)
-          .json({ success: "fail", data: "Manager id and user id required" });
+        throw new AppError("No manager Id or user Id found", 400, "warn");
       }
 
-      const manager: IManager | null =
-        await this.ManagerService.findManagerById(managerId);
+      const manager = await this.ManagerService.findManagerById(managerId);
       if (!manager) {
-        res.status(400).json({ success: false, data: "Manager not found" });
+        throw new AppError(`No manager account found -id (${managerId})`, 404);
       } else {
         const userAccount: IUser | null = await this.UserService.getUserById(
           userId
         );
 
         if (!userAccount) {
-          return res
-            .status(400)
-            .json({ success: false, data: "User not found" });
+          throw new AppError(`No user account found -id (${userId})`, 404);
         }
 
-        if (userAccount.managerId != managerId) {
-          return res.status(401).json({ success: false, data: "Unauthorized" });
-        }
         if (userAccount) {
           const user = await this.UserService.updateUser(userId, {
             isBlocked: !userAccount.isBlocked,
           });
-          console.log(user);
-          res
-            .status(200)
-            .json({ success: true, message: "User status updated" });
+
+          return sendResponse(
+            res,
+            200,
+            `user (${user.name}) has been blocked succesfully`
+          );
         }
       }
     }
@@ -166,11 +155,7 @@ class managerController implements IManagerController {
         httpOnly: true,
         expires: new Date(0),
       });
-      return sendResponse(
-        res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message
-      );
+      return sendResponse(res, 200, `Log out went succesfull`);
     }
   );
 
@@ -178,14 +163,11 @@ class managerController implements IManagerController {
     async (req: Request, res: Response, next: NextFunction) => {
       let { field, value } = req.query;
       if (typeof field !== "string" || typeof value !== "string") {
-        throw new AppError(
-          errorMap[ErrorType.BadRequest].message,
-          errorMap[ErrorType.BadRequest].code
-        );
+        throw new AppError("bad request", 400, "warn");
       }
       const allowedFields = ["spaces", "_id"];
       if (!allowedFields.includes("" + field)) {
-        throw new AppError("Invalid query", 400);
+        throw new AppError("Invalid query", 400, "warn");
       }
 
       const query: Record<string, mongoose.Types.ObjectId> = {};
@@ -196,7 +178,7 @@ class managerController implements IManagerController {
       if (result) {
         return sendResponse(res, 200, "fetched managers succesfully", result);
       } else {
-        throw new AppError("No users found", 404);
+        throw (new AppError("No users found", 404), "warn");
       }
     }
   );

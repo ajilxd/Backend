@@ -16,7 +16,6 @@ class PaymentController implements IPaymentController {
   ): Promise<void> {
     try {
       const { planId, stripeCustomerId, subscriptionId, ownerId } = req.body;
-      console.log(req.body);
 
       if (!planId) {
         return sendResponse(res, 400, "Plan ID is required");
@@ -32,11 +31,10 @@ class PaymentController implements IPaymentController {
       }
 
       if (!process.env.CLIENT_URL) {
-        logger.error("Environment variable CLIENT_URL is missing.");
         return sendResponse(
           res,
-          errorMap[ErrorType.ServerError].code,
-          errorMap[ErrorType.ServerError].message
+          500,
+          `Environment variable CLIENT_URL is missing`
         );
       }
 
@@ -46,12 +44,11 @@ class PaymentController implements IPaymentController {
       const successUrl = `${process.env.CLIENT_URL}/owner/payment?status=success`;
       const cancelUrl = `${process.env.CLIENT_URL}/owner/payment?status=cancel`;
 
-      // Create the subscription checkout session
       const session = await stripeInstance.checkout.sessions.create({
         payment_method_types: ["card"],
         line_items: [
           {
-            price: planId, // Use the pre-configured price ID from Stripe
+            price: planId,
             quantity: 1,
           },
         ],
@@ -87,8 +84,8 @@ class PaymentController implements IPaymentController {
       });
       return sendResponse(
         res,
-        errorMap[ErrorType.ServerError].code,
-        errorMap[ErrorType.ServerError].message
+        500,
+        `Stripe subscription checkout error ${error.message}`
       );
     }
   }
@@ -101,7 +98,7 @@ class PaymentController implements IPaymentController {
       }
 
       await stripeInstance.subscriptions.cancel("" + id);
-      logger.info("subscription cancelled for ", id);
+
       sendResponse(res, 200, "subscripton cancelled  " + id);
     }
   );

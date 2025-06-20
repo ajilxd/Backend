@@ -5,13 +5,9 @@ import { IOwnerService } from "../interface/IOwnerService";
 import OwnerRepository, {
   OwnerQueryType,
 } from "../../repositories/implementations/OwnerRepository";
-import { errorMap, ErrorType } from "../../constants/response.failture";
-import { successMap, SuccessType } from "../../constants/response.succesful";
 import bcrypt from "bcryptjs";
 import config from "../../config";
 import jwt from "jsonwebtoken";
-import { logger } from "../../utils/logger";
-import mongoose from "mongoose";
 
 class OwnerService implements IOwnerService {
   private ownerRepository: IOwnerRepository;
@@ -26,9 +22,7 @@ class OwnerService implements IOwnerService {
   }
 
   async checkOwner(email: string, password: string): Promise<IOwner> {
-    console.log("email from check owner", email);
-    const result = await this.ownerRepository.findByEmail(email);
-    console.log("result from the checkowner", result);
+    const result = await this.ownerRepository.findOne({ email });
     if (result && (await result.comparePassword(password))) {
       return result;
     } else {
@@ -40,77 +34,63 @@ class OwnerService implements IOwnerService {
     const result = await this.ownerRepository.findOne({ email });
     return result;
   }
+
   async resetPassword(email: string, password: string): Promise<IOwner> {
     const Account = await this.findOwnerByEmail(email);
     if (Account) {
-      const result = await this.ownerRepository.update(Account.id, {
+      const result = await this.ownerRepository.update("" + Account._id, {
         password,
       });
       if (!result) {
         throw new AppError(
-          errorMap[ErrorType.ServerError].message,
-          errorMap[ErrorType.ServerError].code
+          `Failed resetting password for ${Account.name} - ${Account._id}`,
+          500,
+          "error"
         );
       }
       return result;
     } else {
-      throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
+      throw (
+        (new AppError("No owner account found with this email", 404), "warn")
       );
     }
   }
 
   async getOwners(): Promise<IOwner[]> {
-    const results = await this.ownerRepository.findAll();
-    if (results.length < 1) {
-      throw new AppError(
-        successMap[SuccessType.NoContent].message,
-        successMap[SuccessType.NoContent].code
-      );
-    }
-    return results;
+    return await this.ownerRepository.findAll();
   }
 
   async updateOwnerStatus(id: string): Promise<IOwner> {
     const owner = await this.ownerRepository.findOne({ _id: id });
     if (owner) {
-      const result = await this.ownerRepository.update(String(owner._id), {
+      const result = await this.ownerRepository.update("" + owner._id, {
         isBlocked: !owner.isBlocked,
       });
       if (result) {
         return result;
       } else {
-        throw new AppError(
-          "error updating owner status",
-          errorMap[ErrorType.ServerError].code
-        );
+        throw new AppError("error updating owner status", 500, "error");
       }
     } else {
       throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
+        `No owner found with this Object Id - ${id}`,
+        404,
+        "warn"
       );
     }
   }
 
   async updateOwner(id: string, ownerData: Partial<IOwner>): Promise<IOwner> {
-    const owner = await this.ownerRepository.findOne({ _id: id });
+    const owner = await this.ownerRepository.findById(id);
     if (owner) {
       const result = await this.ownerRepository.update(id, ownerData);
       if (result) {
         return result;
       } else {
-        throw new AppError(
-          errorMap[ErrorType.ServerError].message,
-          errorMap[ErrorType.ServerError].code
-        );
+        throw new AppError(`Failed updating owner for ${id}`, 500, "error");
       }
     } else {
-      throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
-      );
+      throw new AppError("No owner account found with this id", 404, "warn");
     }
   }
 
@@ -123,34 +103,37 @@ class OwnerService implements IOwnerService {
 
     if (!ownerAccount) {
       throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
+        `No owner account found with email ${email}`,
+        404,
+        "warn"
       );
     }
 
     if (!isGoogleLogin) {
       if (!password) {
-        throw new AppError(
-          errorMap[ErrorType.BadRequest].message,
-          errorMap[ErrorType.BadRequest].code
-        );
+        throw new AppError("No password found", 400, "warn");
       }
 
       const match = await bcrypt.compare(password, ownerAccount.password);
 
       if (!match) {
-        throw new AppError(
-          errorMap[ErrorType.Unauthorized].message,
-          errorMap[ErrorType.Unauthorized].code
-        );
+        throw new AppError(`Invalid credentials  - ${email}`, 400, "warn");
+      }
+
+      if (!ownerAccount.isVerified) {
+        throw new AppError("Email should be verified", 412, "warn");
+      }
+
+      if (ownerAccount.isBlocked) {
+        throw new AppError("Your owner account has been blocked", 403, "warn");
       }
     }
 
     if (!config.GENERAL_ACCESS_SECRET || !config.GENERAL_REFRESH_SECRET) {
-      logger.error("JWT secrets are not defined in the config for owner user");
       throw new AppError(
-        errorMap[ErrorType.ServerError].message,
-        errorMap[ErrorType.ServerError].code
+        "No access secret or refresh secret found in the env for JWT",
+        500,
+        "error"
       );
     }
 
@@ -172,52 +155,38 @@ class OwnerService implements IOwnerService {
     );
 
     if (!updatedData?.refreshToken) {
-      logger.error(
-        `${new Date().toLocaleString()} : failed updating refresh token in DB`
-      );
-      throw new AppError(
-        "failed updating refresh token in DB",
-        errorMap[ErrorType.ServerError].code
-      );
+      throw new AppError("failed updating refresh token in DB", 500, "error");
     }
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, account: ownerAccount };
   }
 
   async fetchOwnerSubscription(ownerId: string) {
     const account = await this.ownerRepository.findOne({ _id: ownerId });
     if (!account) {
-      throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
-      );
+      throw new AppError(`no owner found with this id ${ownerId}`, 404, "warn");
     }
     if (account && account?.subscription) {
       return account.subscription;
     } else {
       throw new AppError(
-        successMap[SuccessType.NoContent].message,
-        successMap[SuccessType.NoContent].code
+        `No subscripition found - ${account.name} -id ${account._id} `,
+        404,
+        "warn"
       );
     }
   }
 
-  async fetchOwnerById(id:string): Promise<IOwner | null> {
-    const objId =new mongoose.Types.ObjectId(id);
-    console.log('objectid',objId)
-    const account = await this.ownerRepository.findOne({ _id:objId});
-    console.log("owner account", account);
+  async fetchOwnerById(id: string): Promise<IOwner | null> {
+    const account = await this.ownerRepository.findOne({ _id: id });
     if (!account) {
-      throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
-      );
+      throw new AppError(`no owner account found with id - ${id}`, 404, "warn");
     }
     return account;
   }
 
   async getOwnersQuery(query: OwnerQueryType): Promise<IOwner[]> {
-    const result = await this.ownerRepository.getOwnersByQuery(query);
+    const result = await this.ownerRepository.find(query);
     return result;
   }
 }

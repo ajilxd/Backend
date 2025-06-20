@@ -1,14 +1,14 @@
 import { ObjectId, Document } from "mongoose";
 
 export interface INotification extends Document {
-  _id:ObjectId;
+  _id: ObjectId;
   companyId: string;
   notificationContent: string;
-  notificationTimeStamp: string; 
+  notificationTimeStamp: string;
   notificationType: string;
-  notificationSenderId?:string;
+  notificationSenderId?: string;
   targetSpaceId: string;
-  seenSet:string[];
+  seenSet: string[];
   createdAt: Date;
   updatedAt: Date;
 }

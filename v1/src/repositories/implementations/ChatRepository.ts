@@ -2,21 +2,15 @@ import { Chat } from "../../schemas/chatSchema";
 import { IChat } from "../../entities/IChat";
 import { IChatRepository } from "../interface/IChatRepository";
 import { BaseRepository } from "./BaseRepository";
+import { Model } from "mongoose";
 
 class ChatRepository extends BaseRepository<IChat> implements IChatRepository {
-  constructor() {
-    super(Chat);
+  constructor(model: Model<IChat>) {
+    super(model);
   }
-
-  async findByRoomId(room: string): Promise<IChat[] | []> {
-    const result = await Chat.find({ room });
-
-    if (result) {
-      return result;
-    } else {
-      return [];
-    }
+  findByRoomId(room: string): Promise<IChat[] | []> {
+    return Chat.find({ room });
   }
 }
 
-export default new ChatRepository();
+export default new ChatRepository(Chat);

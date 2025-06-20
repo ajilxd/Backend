@@ -6,18 +6,14 @@ interface CustomSocket extends Socket {
   roomsJoined?: Set<string>;
 }
 
-
-
-
-
 type Consumer = {
   consumerId: string;
   consumerName: string;
   consumerImageUrl?: string;
   consumerRole?: string;
   consumerLastActive?: string;
-  consumerSpaces?:string;
-  socketId?:string;
+  consumerSpaces?: string;
+  socketId?: string;
 };
 
 type CompanyConsumerMapEntry = {
@@ -26,13 +22,7 @@ type CompanyConsumerMapEntry = {
 
 type CompanyConsumerMap = Map<string, CompanyConsumerMapEntry>;
 
-
-
-
-let CompanyResources:CompanyConsumerMap = new Map()
-
-
-
+let CompanyResources: CompanyConsumerMap = new Map();
 
 export function registerNotificationHandlers(
   nsp: Namespace,
@@ -42,25 +32,27 @@ export function registerNotificationHandlers(
     console.log(socket.id + "has connected to the notification system");
   });
 
-  socket.on("user-connect",(data)=>{
-    console.log("data payload from connecting notification socket",data)
-    const {companyId,consumerId,} =data;
-    const resources =CompanyResources.get(companyId)
-    if(!resources){
-      CompanyResources.set(companyId,{consumers:[{...data,socketId:socket.id}]})
-    }else{
-      const existing =CompanyResources.get(companyId)?.consumers.find(i=>i.consumerId===consumerId)
-      if(existing){
-        existing.socketId=socket.id
-      }else{
-        resources.consumers.push({...data,socketId:socket.id})
+  socket.on("user-connect", (data) => {
+    console.log("data payload from connecting notification socket", data);
+    const { companyId, consumerId } = data;
+    const resources = CompanyResources.get(companyId);
+    if (!resources) {
+      CompanyResources.set(companyId, {
+        consumers: [{ ...data, socketId: socket.id }],
+      });
+    } else {
+      const existing = CompanyResources.get(companyId)?.consumers.find(
+        (i) => i.consumerId === consumerId
+      );
+      if (existing) {
+        existing.socketId = socket.id;
+      } else {
+        resources.consumers.push({ ...data, socketId: socket.id });
       }
     }
-   socket.join(companyId);
-   console.log(CompanyResources.get(companyId))
-  })
-
-
+    socket.join(companyId);
+    console.log(CompanyResources.get(companyId));
+  });
 
   socket.on(
     "notification",
@@ -69,20 +61,19 @@ export function registerNotificationHandlers(
       companyId: string;
       notificationContent: string;
       notificationType: string;
-      notificationTimeStamp:string;
+      notificationTimeStamp: string;
       storeNotificationOnDb: boolean;
     }) => {
       console.log("notification from server", data);
-      if(data.storeNotificationOnDb){
-        async function updateDb(){
-
-          await Notification.create(data)
+      if (data.storeNotificationOnDb) {
+        async function updateDb() {
+          await Notification.create(data);
         }
-       updateDb().then(()=>console.log("notification inserted to db")).catch((err)=>console.log("error happened "+err))
+        updateDb()
+          .then(() => console.log("notification inserted to db"))
+          .catch((err) => console.log("error happened " + err));
       }
-      const {  
-      companyId
-    } = data;
+      const { companyId } = data;
       socket.to(companyId).emit("notification", data);
     }
     

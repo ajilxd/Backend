@@ -8,5 +8,5 @@ export interface IOwnerRepository extends IBaseRepository<IOwner> {
   verifyAccount(email: string): Promise<IOwner | null>;
   updationByEmail(email: string, data: object): Promise<IOwner | null>;
   findByEmail(email: string): Promise<IOwner | null>;
-  getOwnersByQuery(query: OwnerQueryType): Promise<IOwner[]>;
+  resetRefreshToken(id: ObjectId): Promise<IOwner | null>;
 }

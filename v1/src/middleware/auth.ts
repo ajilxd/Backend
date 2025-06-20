@@ -1,14 +1,12 @@
 import { NextFunction, Request, Response } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import config from "../config";
 import AppError from "../errors/appError";
-import { logger } from "../utils/logger";
 
-// Extend Express Request type
 declare global {
   namespace Express {
     interface Request {
-      user?: any; // Adjust to your payload
+      user?: any;
     }
   }
 }
@@ -16,7 +14,6 @@ declare global {
 const authMiddleware = (allowedRoles: string[] = []) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const authHeader = req.headers.authorization;
-    console.log("auth header", authHeader);
 
     if (!authHeader) {
       res.status(401).json({ message: "No token provided" });
@@ -27,7 +24,7 @@ const authMiddleware = (allowedRoles: string[] = []) => {
 
     try {
       if (!config.GENERAL_ACCESS_SECRET) {
-        throw new AppError("No jwt secrets found", 500);
+        throw new AppError("No jwt secrets found", 500, "error");
       }
       const payload = jwt.verify(token, config.GENERAL_ACCESS_SECRET);
 

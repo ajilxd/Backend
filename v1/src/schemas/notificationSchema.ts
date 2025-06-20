@@ -3,24 +3,24 @@ import { INotification } from "../entities/INotification";
 
 const NotificationSchema: Schema<INotification> = new Schema(
   {
-    companyId:{
-      type:String,
-      required:true
+    companyId: {
+      type: String,
+      required: true,
     },
-    targetSpaceId:{
-      type:String
+    targetSpaceId: {
+      type: String,
     },
-    notificationContent:{
-      type:String,
-      required:true
+    notificationContent: {
+      type: String,
+      required: true,
     },
-    notificationTimeStamp:{
-      type:String,
+    notificationTimeStamp: {
+      type: String,
     },
-    notificationType:{
-      type:String
+    notificationType: {
+      type: String,
     },
-    notificationSenderId:String,
+    notificationSenderId: String,
   },
   { timestamps: true }
 );

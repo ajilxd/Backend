@@ -12,6 +12,7 @@ ownerRouter.post(
 ownerRouter.post("/login", OwnerController.loginUser);
 ownerRouter.get("/logout", OwnerController.logoutUser);
 ownerRouter.post("/verify-otp", OwnerController.AuthenticateOtp);
+ownerRouter.post("/request-otp", OwnerController.requestOtpHandler);
 ownerRouter.post("/resend-otp", OwnerController.resendOtphandler);
 ownerRouter.post("/google", OwnerController.handleGoogleClick);
 ownerRouter.post("/forget-password", OwnerController.forgotPasswordHandler);

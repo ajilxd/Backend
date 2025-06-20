@@ -29,19 +29,13 @@ class OTPService implements IOTPService {
   async sendOTP(email: string): Promise<void> {
     const otp = await this.generateOTP();
 
-    if (!otp) {
-      logger.error(`${new Date().toLocaleString()} Failed generating otp`);
-      throw new AppError(
-        "failed generating otp",
-        errorMap[ErrorType.ServerError].code
-      );
-    }
     await this.deleteOtp(email);
     const newOtp = await OTPRepository.create({ email, otp });
     if (!newOtp) {
       throw new AppError(
-        "failed creating otp collection",
-        errorMap[ErrorType.ServerError].code
+        `Failed creating otp collection for email ${email}`,
+        500,
+        "error"
       );
     }
     return await sendEmail(
@@ -58,36 +52,19 @@ class OTPService implements IOTPService {
 
   async verifyOTP(email: string, otp: string): Promise<IOwner> {
     const otpExists = await this.OTPRepository.findOne({ email });
-
-    logger.info(`${new Date().toLocaleString()} :-otp verification for  email`);
     if (!otpExists) {
-      throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
-      );
+      throw new AppError(`No otp found for this email - ${email}`, 404, "warn");
     }
 
     if (otpExists.otp !== otp) {
-      logger.error(
-        `${new Date()} :- ${
-          (errorMap[ErrorType.Unauthorized].message,
-          errorMap[ErrorType.Unauthorized].code)
-        }`
-      );
-      throw new AppError(
-        errorMap[ErrorType.Unauthorized].message,
-        errorMap[ErrorType.Unauthorized].code
-      );
+      throw new AppError(`Invalid otp entered by ${email}`, 401);
     }
 
     await OTPRepository.delete(email);
     const verifiedAccount = await this.OwnerRepository.verifyAccount(email);
 
     if (!verifiedAccount) {
-      throw new AppError(
-        "failed to update the owner collection",
-        errorMap[ErrorType.ServerError].code
-      );
+      throw new AppError("failed to update the owner collection", 500, "error");
     }
 
     logger.info(`${new Date().toLocaleString()} : Otp verified for, ${email}`);

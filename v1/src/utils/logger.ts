@@ -1,4 +1,4 @@
-import pino, { destination, Logger } from "pino";
+import pino, { Logger } from "pino";
 import PinoHttp, { Options } from "pino-http";
 
 export const logger: Logger = pino({
@@ -38,17 +38,6 @@ export const logger: Logger = pino({
   },
 });
 
-export const pinoLogger = (
-  route: string,
-  service: string,
-  controller: string
-) => {
-  return logger.child({
-    route,
-    service,
-    controller,
-  });
-};
 
 const options: Options = {
   logger,

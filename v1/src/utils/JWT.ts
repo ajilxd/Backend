@@ -26,7 +26,7 @@ export function generateAccessToken(type: UserRole, user: tokenUser) {
     return jwt.sign(user, ADMIN_ACCESS_SECRET, { expiresIn: "15m" });
   } else {
     if (!GENERAL_ACCESS_SECRET) {
-      throw new AppError("No general access secret", 500);
+      throw new AppError("No general access secret", 500, "error");
     }
     return jwt.sign(user, GENERAL_ACCESS_SECRET, { expiresIn: "15m" });
   }

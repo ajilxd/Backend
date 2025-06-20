@@ -1,4 +1,3 @@
-import { ObjectId } from "mongoose";
 import { errorMap, ErrorType } from "../../constants/response.failture";
 import { ISpace, TeamMember, TeamMemberStatus } from "../../entities/ISpace";
 import AppError from "../../errors/appError";
@@ -21,7 +20,7 @@ type SpaceManagerType = {
   managerId: string;
   managerImage: string;
   managerName: string;
-  status?:string
+  status?: string;
 };
 
 class SpaceService implements ISpaceService {
@@ -49,23 +48,20 @@ class SpaceService implements ISpaceService {
   }
 
   async createSpace(owner: string, data: Partial<ISpace>): Promise<ISpace> {
-    if (!owner) {
-      throw new AppError(
-        "No ownerId found",
-        errorMap[ErrorType.BadRequest].code
-      );
-    }
-
     const validOwner = await this.OwnerRepository.findOne({ _id: owner });
 
     if (!validOwner) {
-      throw new AppError("Invalid owner", 404);
+      throw new AppError(
+        "No Owner account found with id - ${owner}",
+        404,
+        "warn"
+      );
     }
     const companyData = await this.CompanyRepository.findOne({
       ownerId: validOwner._id,
     });
     if (!companyData) {
-      throw new AppError("Owner doesnt have an company", 400);
+      throw new AppError("Owner havent registered a company yet", 403, "warn");
     }
 
     let managersData: SpaceManagerType[] = [];
@@ -106,88 +102,95 @@ class SpaceService implements ISpaceService {
       );
     };
 
-   await updateManager();
+    await updateManager();
 
     if (result) {
       return result;
     } else {
       throw new AppError(
-        errorMap[ErrorType.ServerError].message,
-        errorMap[ErrorType.ServerError].code
+        "Failed to create space - Internal server error",
+        500,
+        "error"
       );
     }
   }
 
   async updateSpace(
-  owner: string,
-  spaceId: string,
-  data: Partial<ISpace>
-): Promise<ISpace> {
-  const validOwner = await this.OwnerRepository.findOne({ _id: owner });
-  if (!validOwner) {
-    throw new AppError("Invalid ownerId", 404);
-  }
-
-  const validSpace = await this.SpaceRepository.findOne({ _id: spaceId });
-  if (!validSpace) {
-    throw new AppError("Invalid spaceId", 404);
-  }
-
-  const existingManagers = validSpace.managers || [];
-
-  let updatedManagers: SpaceManagerType[] = [];
-
-  if (data.managers && data.managers.length > 0) {
-    const inputManagerIds = new Set(data.managers.map((m) => m.managerId));
-    const existingManagerMap = new Map(
-      existingManagers.map((m) => [m.managerId, m])
-    );
-
-    // Active managers from input
-    for (const { managerId } of data.managers) {
-      const manager = await this.ManagerRepository.findOne({ _id: managerId });
-      if (!manager) {
-        throw new AppError("Manager not found", 404);
-      }
-
-      await this.ManagerRepository.update(managerId, {
-        $addToSet: { spaces: validSpace._id },
-      });
-
-      updatedManagers.push({
-        managerId: String(manager._id),
-        managerImage: manager.image ?? "",
-        managerName: manager.name,
-        status: "active",
-      });
+    owner: string,
+    spaceId: string,
+    data: Partial<ISpace>
+  ): Promise<ISpace> {
+    const validOwner = await this.OwnerRepository.findOne({ _id: owner });
+    const validSpace = await this.SpaceRepository.findOne({ _id: spaceId });
+    if (!validOwner) {
+      throw new AppError("Invalid ownerId", 404);
     }
 
-    // Inactive managers from existing list (not in current input)
-    for (const existing of existingManagers) {
-      if (!inputManagerIds.has(existing.managerId)) {
-        updatedManagers.push({
-          managerId: existing.managerId,
-          managerImage: existing.managerImage ?? "",
-          managerName: existing.managerName,
-          status: "inactive",
+    if (!validOwner) {
+      throw new AppError(
+        `No owner account found with this Id - ${owner}`,
+        404,
+        "warn"
+      );
+    }
+
+    if (!validSpace) {
+      throw new AppError(
+        `No space found with this Id - ${spaceId}`,
+        404,
+        "warn"
+      );
+    }
+
+    const existingManagers = validSpace.managers || [];
+
+    if (!validSpace) {
+      throw new AppError(`No space found with this id ${spaceId}`, 404, "warn");
+    }
+
+    let managersData: SpaceManagerType[];
+    let updated: ISpace | null;
+    if (data.managers && data.managers.length > 0) {
+      const managerPromises = data.managers.map(async (item) => {
+        const manager = await this.ManagerRepository.findOne({
+          _id: item.managerId,
         });
+        if (!manager) {
+          throw new AppError(
+            "Issues at storing space at adding manager data -No manager found",
+            500
+          );
+        }
+        return {
+          managerId: String(manager._id),
+          managerImage: manager.image ?? "",
+          managerName: manager.name,
+        };
+      });
+
+      managersData = await Promise.all(managerPromises);
+      updated = await this.SpaceRepository.update(spaceId, {
+        ...data,
+        managers: managersData,
+      });
+
+      if (updated) {
+        return updated;
+      } else {
+        throw new AppError(
+          "Failed to update the space - Internal server error occured",
+          500,
+          "error"
+        );
       }
     }
+
+    throw new AppError(
+      "No manager data provided for updating space",
+      400,
+      "warn"
+    );
   }
-
-  const updated = await this.SpaceRepository.update(spaceId, {
-    ...data,
-    managers: updatedManagers.length > 0 ? updatedManagers : existingManagers,
-  });
-
-  if (updated) return updated;
-
-  throw new AppError(
-    errorMap[ErrorType.ServerError].message,
-    errorMap[ErrorType.ServerError].code
-  );
-}
-
 
   async getSpaces(query: SpaceQueryType): Promise<ISpace[]> {
     const result = await this.SpaceRepository.getSpacesByQuery(query);
@@ -227,12 +230,11 @@ class SpaceService implements ISpaceService {
   ): Promise<ISpace> {
     if (!spaceId || !managerId) {
       throw new AppError(
-        errorMap[ErrorType.BadRequest].message,
-        errorMap[ErrorType.BadRequest].code
+        `No space id or manager id provided for adding member to space`,
+        400,
+        "warn"
       );
     }
-
-    console.log("members from the add member service", data);
 
     const validSpaceId = await this.SpaceRepository.getSpacesByQuery({
       _id: spaceId,
@@ -240,75 +242,77 @@ class SpaceService implements ISpaceService {
 
     if (!validSpaceId) {
       throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
+        `No space found with this space Id (${spaceId})`,
+        404,
+        "warn"
       );
     }
 
-    const members =data
+    const members = data;
 
- 
-    const updated = await this.SpaceRepository.addMembersToSpace(spaceId,members);
+    const updated = await this.SpaceRepository.addMembersToSpace(
+      spaceId,
+      members
+    );
     if (!updated) {
       throw new AppError(
-        errorMap[ErrorType.ServerError].message,
-        errorMap[ErrorType.ServerError].code
+        `Failed to add member to the spaceId(${spaceId} by managerId(${managerId}))`,
+        500,
+        "error"
       );
     } else {
       return updated;
     }
   }
 
-  // async editMember(
-  //   spaceId: string,
-  //   memberId: string,
-  //   managerId: string,
-  //   data: Partial<TeamMember>,
-  //   statusUpdate?:boolean
-  // ): Promise<ISpace> {
- 
+  async removeMember(
+    spaceId: string,
+    memberId: string,
+    managerId: string
+  ): Promise<ISpace> {
+    if (!spaceId || !memberId || !managerId) {
+      throw new AppError(
+        `Bad request - spaceid or memberid or mangerId is missing`,
+        400,
+        "warn"
+      );
+    }
 
-  //   const validSpace= await this.SpaceRepository.getSpacesByQuery({
-  //     _id: ""+spaceId,
-  //   });
+    const validSpace = await this.SpaceRepository.getSpacesByQuery({
+      _id: "" + spaceId,
+    });
 
-  //   if (!validSpace) {
-  //     throw new AppError(
-  //       "No space found with space id",
-  //       errorMap[ErrorType.NotFound].code
-  //     );
-  //   }
+    if (!validSpace) {
+      throw new AppError(
+        `No space found with space id(${spaceId})`,
+        404,
+        "warn"
+      );
+    }
 
-  //   const validManagerId =
-  //     await this.SpaceRepository.getSpaceByManagerIdAndSpaceId(
-  //       ""+spaceId,
-  //      ""+ managerId
-  //     );
+    const validManagerId =
+      await this.SpaceRepository.getSpaceByManagerIdAndSpaceId(
+        "" + spaceId,
+        "" + managerId
+      );
 
-  //   const {members} =validSpace[0].team;
-  //   const currentMember =members.find(i=>i.userId===memberId);
-  //   let status = "active"
-  //   if(statusUpdate && currentMember){
-  //     status =currentMember.status ===TeamMemberStatus[0]?TeamMemberStatus[2]:TeamMemberStatus[0]
-  //   }
+    if (!validManagerId) {
+      throw new AppError("Not authorized to add or edit member ", 403, "warn");
+    }
 
-  //   if (!validManagerId) {
-  //     throw new AppError("No space found with manager id", 404);
-  //   }
-
-  //   const updated = await this.SpaceRepository.updateMember(
-  //     spaceId,
-  //     memberId,
-  //     {designation:data.designation,invitedBy:currentMember?.invitedBy,status}
-  //   );
-  //   if (!updated) {
-  //     throw new AppError(
-  //       errorMap[ErrorType.ServerError].message,
-  //       errorMap[ErrorType.ServerError].code
-  //     );
-  //   }
-  //   return updated;
-  // }
+    const updated = await this.SpaceRepository.removeTeamMember(
+      spaceId,
+      memberId
+    );
+    if (!updated) {
+      throw new AppError(
+        `Failed to update members for the space(${spaceId}) by ManagerId (${managerId})`,
+        500,
+        "error"
+      );
+    }
+    return updated;
+  }
 }
 
 export default new SpaceService(

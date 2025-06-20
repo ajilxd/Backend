@@ -23,9 +23,9 @@ class DocumentController implements IDocumentController {
         _id: spaceId,
       });
       if (!spaceId) {
-        throw new AppError("Space id not found", 400);
+        throw new AppError("Space id not found", 400, "warn");
       }
-      if (!validSpaceArray.length) {
+      if (validSpaceArray.length === 0) {
         throw new AppError("No space found with given space id", 404);
       }
 
@@ -39,12 +39,16 @@ class DocumentController implements IDocumentController {
       const { docId } = req.params;
       const { spaceId } = req.body;
       if (!docId || !spaceId) {
-        throw new AppError("No document id or space id found", 400);
+        throw new AppError("No document id or space id found", 400, "warn");
       }
 
       const validDocuments = await this.DocumentService.getDocuments(spaceId);
-      if (!validDocuments?.length) {
-        throw new AppError("No document found with this space id ", 404);
+      if (!validDocuments || validDocuments?.length < 1) {
+        throw new AppError(
+          "No documents found with this space id ",
+          404,
+          "warn"
+        );
       }
 
       const docExists = validDocuments.find(
@@ -74,12 +78,16 @@ class DocumentController implements IDocumentController {
       const { docId } = req.params;
       const { spaceId } = req.body;
       if (!docId || !spaceId) {
-        throw new AppError("No document id or space id found", 400);
+        throw new AppError("No document id or space id found", 400, "warn");
       }
 
       const validDocuments = await this.DocumentService.getDocuments(spaceId);
-      if (!validDocuments?.length) {
-        throw new AppError("No document found with this space id ", 404);
+      if (!validDocuments || validDocuments?.length < 1) {
+        throw new AppError(
+          "No document found with this space id ",
+          404,
+          "warn"
+        );
       }
 
       const docExists = validDocuments.find(
@@ -87,25 +95,33 @@ class DocumentController implements IDocumentController {
       );
 
       if (!docExists) {
-        throw new AppError("No document found with this document id", 404);
+        throw new AppError(
+          "No document found with this document id",
+          404,
+          "warn"
+        );
       }
 
       const deleted = await this.DocumentService.deletDocument(docId);
-      sendResponse(res, 200, "document deleted succesfully", deleted);
+      sendResponse(res, 200, "Document deleted succesfully", deleted);
     }
   );
 
   getDocumentsHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       if (typeof req.query.spaceId !== "string") {
-        return res.status(400).json({ error: "spaceId must be a string" });
+        throw new AppError("SpaceId must be a string", 400, "warn");
       }
       const spaceId = req.query.spaceId;
 
       const validDocuments = await this.DocumentService.getDocuments(spaceId);
-      console.log(validDocuments);
-      if (!validDocuments?.length) {
-        throw new AppError("No document found with this space id ", 404);
+
+      if (!validDocuments || validDocuments?.length < 1) {
+        throw new AppError(
+          "No document found with this space id ",
+          404,
+          "warn"
+        );
       }
       sendResponse(res, 200, "Fetched documents succesfully", validDocuments);
     }

@@ -4,10 +4,6 @@ import AppError from "../../errors/appError";
 import { ISubscriptionService } from "../interface/ISubscriptionService";
 import subscriptionRepository from "../../repositories/implementations/SubscriptionRepository";
 
-import { errorMap, ErrorType } from "../../constants/response.failture";
-
-import { successMap, SuccessType } from "../../constants/response.succesful";
-
 class SubscriptionService
   implements ISubscriptionService<ISubscription<string>>
 {
@@ -24,10 +20,7 @@ class SubscriptionService
     });
 
     if (existingSubscription) {
-      throw new AppError(
-        errorMap[ErrorType.conflict].message,
-        errorMap[ErrorType.conflict].code
-      );
+      throw new AppError("existing subscription name", 409, "warn");
     }
 
     const result = await this.subscriptionRepository.create(data);
@@ -37,14 +30,8 @@ class SubscriptionService
 
   async fetchSubscriptions(): Promise<ISubscription<string>[]> {
     const result = await this.subscriptionRepository.findAll();
-    if (result.length > 0) {
-      return result;
-    } else {
-      throw new AppError(
-        successMap[SuccessType.NoContent].message,
-        successMap[SuccessType.Accepted].code
-      );
-    }
+
+    return result;
   }
 
   async updateSubscription(
@@ -55,35 +42,26 @@ class SubscriptionService
       _id: id,
     });
     if (!existingSubscription) {
-      throw new AppError(
-        errorMap[ErrorType.NotFound].message,
-        errorMap[ErrorType.NotFound].code
-      );
+      throw new AppError("No subscription found with this id", 404, "warn");
     }
     const result = await this.subscriptionRepository.update(id, data);
     if (result) {
       return result;
     } else {
-      throw new AppError(
-        "error updating subscription status",
-        errorMap[ErrorType.ServerError].code
-      );
+      throw new AppError("error updating subscription", 500, "error");
     }
   }
 
   async findSubscriptionById(id: string): Promise<ISubscription<string>> {
-    console.log("hey iam subscription service", id);
+
     if (!id) {
-      throw new AppError("Id required for fetching subscription", 400);
+      throw new AppError("Id required for fetching subscription", 400, "warn");
     }
     const result = await this.subscriptionRepository.findOne({ _id: id });
     if (result) {
       return result;
     } else {
-      throw new AppError(
-        "No subscripiton found for this " + id,
-        errorMap[ErrorType.NotFound].code
-      );
+      throw new AppError("No subscripiton found for this " + id, 404, "warn");
     }
   }
 }

@@ -19,11 +19,11 @@ export interface ISpaceController {
     next: NextFunction
   ): Promise<void> | void;
 
-  // editUserHandler(
-  //   req: Request,
-  //   res: Response,
-  //   next: NextFunction
-  // ): Promise<void> | void;
+  removeMemberHandler(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> | void;
 
   getSpacesByField(
     req: Request,

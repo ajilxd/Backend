@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Expose } from "class-transformer";
+
 import {
   IsString,
   IsBoolean,
@@ -9,38 +9,30 @@ import {
 } from "class-validator";
 
 export class CreateSubscriptionDto {
-  @Expose()
   @IsString()
   billingCycle!: string;
 
-  @Expose()
   @IsNumber()
   amount!: number;
 
-  @Expose()
   @IsString()
   name!: string;
 
-  @Expose()
   @IsBoolean()
   isActive!: boolean;
 
-  @Expose()
   @IsString()
   description!: string;
 
-  @Expose()
   @IsArray()
   @IsString({ each: true })
   features!: string[];
 }
 
-// subscription-update.dto.ts
-
 export class UpdateSubscriptionDto {
   @IsOptional()
   @IsString()
-  name?: number;
+  name?: string;
 
   @IsString()
   id!: string;

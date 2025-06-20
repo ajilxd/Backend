@@ -6,6 +6,6 @@ export const spaceRouter = Router();
 spaceRouter.post("/", SpaceController.addSpaceHandler);
 spaceRouter.put("/", SpaceController.editSpaceHandler);
 spaceRouter.post("/users", SpaceController.addUserHandler);
-// spaceRouter.put("/users", SpaceController.editUserHandler);
+spaceRouter.put("/users", SpaceController.removeMemberHandler);
 spaceRouter.get("/", SpaceController.getSpacesByField);
 spaceRouter.put("/:spaceId", SpaceController.updateSpaceByField);

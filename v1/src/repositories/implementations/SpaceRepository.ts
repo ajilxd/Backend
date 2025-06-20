@@ -1,4 +1,4 @@
-import mongoose, { ObjectId } from "mongoose";
+import mongoose, { Model, Types } from "mongoose";
 import { ISpace, TeamMember } from "../../entities/ISpace";
 import AppError from "../../errors/appError";
 import { Space } from "../../schemas/spaceSchema";
@@ -10,8 +10,8 @@ class SpaceRepository
   extends BaseRepository<ISpace>
   implements ISpaceRepository
 {
-  constructor() {
-    super(Space);
+  constructor(model: Model<ISpace>) {
+    super(model);
   }
 
   async getSpacesByQuery(query: SpaceQueryType): Promise<ISpace[]> {
@@ -44,12 +44,10 @@ class SpaceRepository
     spaceId: string,
     managerId: string
   ): Promise<ISpace | null> {
-    const result = await Space.findOne({
+    return await Space.findOne({
       _id: spaceId,
-      managers: managerId,
+      "managers.managerId": new Types.ObjectId(managerId),
     }).exec();
-
-    return result;
   }
 
   async updateMember(
@@ -58,11 +56,12 @@ class SpaceRepository
     data: Partial<TeamMember>
   ): Promise<ISpace | null> {
     const updated = await Space.findOneAndUpdate(
-      { _id: spaceId, "team.members.userId": memberId },
+      {
+        _id: new mongoose.Types.ObjectId(spaceId),
+        "team.members.userId": new mongoose.Types.ObjectId(memberId),
+      },
       {
         $set: {
-          "team.members.$[elem].role": data.role,
-          "team.members.$[elem].designation": data.designation,
           "team.members.$[elem].status": data.status,
         },
       },
@@ -77,20 +76,41 @@ class SpaceRepository
     return updated;
   }
 
+async removeTeamMember(spaceId: string, userId: string): Promise<ISpace | null> {
+  const updated = await Space.findOneAndUpdate(
+    { _id: new Types.ObjectId(spaceId) },
+    {
+      $pull: {
+        "team.members": {
+          userId: new Types.ObjectId(userId),
+        },
+      },
+    },
+    { new: true }
+  );
 
-   async addMembersToSpace(spaceId:string,members: Partial<TeamMember>[]){
-    console.log("heyyyyyyy im add member from space repo",members)
-    const updated = await Space.findByIdAndUpdate({_id:spaceId},{$push:{
-      "team.members":{
-        $each:members
-      }
-    }},{new:true})
-    if(updated){
-      return updated
-    }else{
-      throw new AppError("updating members failed",500)
+  return updated;
+}
+
+
+  async addMembersToSpace(spaceId: string, members: Partial<TeamMember>[]) {
+    const updated = await Space.findByIdAndUpdate(
+      { _id: spaceId },
+      {
+        $push: {
+          "team.members": {
+            $each: members,
+          },
+        },
+      },
+      { new: true }
+    );
+    if (updated) {
+      return updated;
+    } else {
+      throw new AppError("updating members failed", 500, "error");
     }
   }
 }
 
-export default new SpaceRepository();
+export default new SpaceRepository(Space);
