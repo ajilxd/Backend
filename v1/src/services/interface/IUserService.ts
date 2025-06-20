@@ -10,4 +10,5 @@ export interface IUserService {
   getUserByemail(email: string): Promise<IUser>;
   getUsersQuery(query: UserQueryType): Promise<IUser[]>;
   removeUserSpace(userId: string, spaceId: string): Promise<IUser>;
+  findUserByEmail(email: string): Promise<IUser | null>;
 }

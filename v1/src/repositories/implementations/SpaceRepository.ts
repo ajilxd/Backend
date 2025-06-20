@@ -1,4 +1,4 @@
-import mongoose, { Model, Types } from "mongoose";
+import mongoose, { Model, Types, ObjectId } from "mongoose";
 import { ISpace, TeamMember } from "../../entities/ISpace";
 import AppError from "../../errors/appError";
 import { Space } from "../../schemas/spaceSchema";
@@ -51,13 +51,13 @@ class SpaceRepository
   }
 
   async updateMember(
-    spaceId: ObjectId,
-    memberId: ObjectId,
+    spaceId: string,
+    memberId: string,
     data: Partial<TeamMember>
   ): Promise<ISpace | null> {
     const updated = await Space.findOneAndUpdate(
       {
-        _id: new mongoose.Types.ObjectId(spaceId),
+        _id: spaceId,
         "team.members.userId": new mongoose.Types.ObjectId(memberId),
       },
       {
@@ -66,9 +66,7 @@ class SpaceRepository
         },
       },
       {
-        arrayFilters: [
-          { "elem.userId":memberId},
-        ],
+        arrayFilters: [{ "elem.userId": memberId }],
         new: true,
       }
     );
@@ -76,22 +74,24 @@ class SpaceRepository
     return updated;
   }
 
-async removeTeamMember(spaceId: string, userId: string): Promise<ISpace | null> {
-  const updated = await Space.findOneAndUpdate(
-    { _id: new Types.ObjectId(spaceId) },
-    {
-      $pull: {
-        "team.members": {
-          userId: new Types.ObjectId(userId),
+  async removeTeamMember(
+    spaceId: string,
+    userId: string
+  ): Promise<ISpace | null> {
+    const updated = await Space.findOneAndUpdate(
+      { _id: new Types.ObjectId(spaceId) },
+      {
+        $pull: {
+          "team.members": {
+            userId: new Types.ObjectId(userId),
+          },
         },
       },
-    },
-    { new: true }
-  );
+      { new: true }
+    );
 
-  return updated;
-}
-
+    return updated;
+  }
 
   async addMembersToSpace(spaceId: string, members: Partial<TeamMember>[]) {
     const updated = await Space.findByIdAndUpdate(

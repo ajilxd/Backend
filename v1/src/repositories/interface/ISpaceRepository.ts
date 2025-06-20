@@ -19,8 +19,8 @@ export interface ISpaceRepository extends IBaseRepository<ISpace> {
   getAllSpacesByManagerId(managerId: string): Promise<ISpace[]>;
 
   updateMember(
-    spaceId: ObjectId,
-    memberId:ObjectId,
+    spaceId: string,
+    memberId: string,
     data: Partial<TeamMember>
   ): Promise<ISpace | null>;
 

@@ -6,14 +6,18 @@ import { sendResponse } from "../../utils/sendResponse";
 import UserService from "../../services/implementation/UserService";
 import AppError from "../../errors/appError";
 import mongoose from "mongoose";
+import { INotificationService } from "../../services/interface/INotificationService";
+import NotificationService from "../../services/implementation/NotificationService";
 
 class UserController implements IUserController {
-  private UserService:IUserService;
-  private NotificationService:INotificationService;
-  constructor(UserService: IUserService,NotificationService:INotificationService) {
+  private UserService: IUserService;
+  private NotificationService: INotificationService;
+  constructor(
+    UserService: IUserService,
+    NotificationService: INotificationService
+  ) {
     this.UserService = UserService;
-    this.NotificationService =NotificationService
-
+    this.NotificationService = NotificationService;
   }
 
   logoutHandler = catchAsync(
@@ -78,30 +82,35 @@ class UserController implements IUserController {
     }
   );
 
+  getNotificationsHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      console.log("hey im notification from user side");
+      const { companyId, receiverId } = req.query;
 
+      if (typeof companyId !== "string") {
+        return res
+          .status(400)
+          .json({ message: "Invalid or missing companyId" });
+      }
 
-    getNotificationsHandler = catchAsync(
-        async (req: Request, res: Response, next: NextFunction) => {
-          console.log("hey im notification from user side")
-        const { companyId, receiverId } = req.query;
-  
-          if (typeof companyId !== 'string') {
-            return res.status(400).json({ message: "Invalid or missing companyId" });
-          }
-  
-  
-          if (typeof receiverId !== 'string') {
-            return res.status(400).json({ message: "Invalid or missing receiverId" });
-          }
-      
-          const notifications = await this.NotificationService.fetchNotifications(companyId);
-          const result = notifications.filter(i=>i.notificationSenderId!=receiverId);
-          if(result.length<1){
-            return sendResponse(res,204,"No content")
-          }
-          sendResponse(res,200,"notifications fetched succesfully",result)
-        }
-    )
+      if (typeof receiverId !== "string") {
+        return res
+          .status(400)
+          .json({ message: "Invalid or missing receiverId" });
+      }
+
+      const notifications = await this.NotificationService.fetchNotifications(
+        companyId
+      );
+      const result = notifications.filter(
+        (i) => i.notificationSenderId != receiverId
+      );
+      if (result.length < 1) {
+        return sendResponse(res, 204, "No content");
+      }
+      sendResponse(res, 200, "notifications fetched succesfully", result);
+    }
+  );
 }
 
-export default new UserController(UserService,NotificationService);
+export default new UserController(UserService, NotificationService);

@@ -43,11 +43,15 @@ class OwnerController implements IOwnerController {
 
   registerOwner = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const email = req.body.email;
-      const existingOwner = await this.OwnerService.findOwnerByEmail(email);
-      const existingManager = await this.ManagerService.fetchManagerByEmail(
-        email
+      const existingOwner = await this.OwnerService.findOwnerByEmail(
+        req.body.email
       );
+      const existingManager = await this.ManagerService.fetchManagerByEmail(
+        req.body.email
+      );
+
+      const existingUser = existingOwner || existingManager;
+
       if (existingUser) {
         throw new AppError("existing email", 409, "warn");
       }
@@ -255,7 +259,7 @@ class OwnerController implements IOwnerController {
     async (req: Request, res: Response, next: NextFunction) => {
       const { ownerId } = req.body;
       const updated = await this.OwnerService.updateOwner(ownerId, req.body);
-      
+
       return sendResponse(
         res,
         200,
@@ -272,7 +276,7 @@ class OwnerController implements IOwnerController {
       const existingManager = await this.ManagerService.fetchManagerByEmail(
         email
       );
-      const existingUser = await this.UserService.getUserByemail(email);
+      const existingUser = await this.UserService.findUserByEmail(email);
       if (existingManager || existingOwner || existingUser) {
         return sendResponse(res, 409, "existing email");
       }

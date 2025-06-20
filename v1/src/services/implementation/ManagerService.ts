@@ -38,6 +38,10 @@ class ManagerService implements IManagerService {
     return result;
   }
 
+  async fetchManagerByEmail(email: string): Promise<IManager | null> {
+    return await this.managerRepository.findOne({ email });
+  }
+
   async findManagerById(id: string): Promise<IManager> {
     const result = await this.managerRepository.findOne({ _id: id });
     if (!result)
