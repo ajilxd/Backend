@@ -8,6 +8,7 @@ import { catchAsync } from "../../errors/catchAsyc";
 import { sendResponse } from "../../utils/sendResponse";
 import { successMap, SuccessType } from "../../constants/response.succesful";
 import AppError from "../../errors/appError";
+import { warn } from "console";
 
 class CompanyController implements ICompanyController {
   private ownerservice: IOwnerService;
@@ -89,6 +90,30 @@ class CompanyController implements ICompanyController {
         successMap[SuccessType.Ok].message,
         company
       );
+    }
+  );
+
+  getCompanyMembers = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { id } = req.params;
+      if (!id) {
+        throw new AppError(
+          "Company Id is required to fetch the company members",
+          400,
+          "warn"
+        );
+      }
+      const members = await this.companyservice.findAllMembersByCompanyId(id);
+      if (members.length > 0) {
+        return sendResponse(
+          res,
+          200,
+          `succesfully fetched members with ${id} got ${members.length} members`,
+          members
+        );
+      } else {
+        return sendResponse(res, 204, "No members found", "warn");
+      }
     }
   );
 }

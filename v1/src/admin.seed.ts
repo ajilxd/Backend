@@ -10,7 +10,7 @@ const seedAdmin = async () => {
   const { ADMIN_EMAIL, ADMIN_PASSWORD, MONGODB_URI } = process.env;
 
   if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !MONGODB_URI) {
-    logger.fatal("❌ Missing required environment variables");
+    logger.fatal("Missing required environment variables");
     process.exit(1);
   }
 
@@ -27,7 +27,7 @@ const seedAdmin = async () => {
     password: hashedPassword,
   });
 
-  logger.info("✅ Admin seeded successfully");
+  logger.info("Admin seeded successfully");
   process.exit();
 };
 

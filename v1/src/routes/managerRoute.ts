@@ -1,6 +1,7 @@
 import { Router } from "express";
 import managerController from "../controllers/implementation/ManagerController";
 import authMiddleware from "../middleware/auth";
+import CompanyController from "../controllers/implementation/CompanyController";
 export const managerRouter = Router();
 
 managerRouter.get(
@@ -35,4 +36,14 @@ managerRouter.get(
   managerController.logoutHandler
 );
 
-managerRouter.get("/notifications",authMiddleware(["manager"]),managerController.getNotificationsHandler)
+managerRouter.get(
+  "/notifications",
+  authMiddleware(["manager"]),
+  managerController.getNotificationsHandler
+);
+
+managerRouter.get(
+  "/members/:id",
+  authMiddleware(["manager"]),
+  CompanyController.getCompanyMembers
+);

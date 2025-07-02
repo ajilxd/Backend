@@ -1,15 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { IUserChatlist } from "../entities/IUserChatlist";
 
-const ParticipantSchema = new Schema(
-  {
-    name: { type: String, required: true },
-    image: { type: String, required: true },
-    userId: { type: String, required: true },
-  },
-  { _id: false }
-);
-
 const ChatSchema: Schema<IUserChatlist> = new mongoose.Schema(
   {
     chatId: {
@@ -18,7 +9,7 @@ const ChatSchema: Schema<IUserChatlist> = new mongoose.Schema(
       unique: true,
     },
     participants: {
-      type: [ParticipantSchema],
+      type: [String, String],
       required: true,
     },
     createdAt: {

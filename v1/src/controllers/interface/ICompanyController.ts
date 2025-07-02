@@ -24,4 +24,10 @@ export interface ICompanyController {
     res: Response,
     next: NextFunction
   ): Promise<void> | void;
+
+  getCompanyMembers: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 }

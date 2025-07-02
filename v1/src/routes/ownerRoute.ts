@@ -44,6 +44,12 @@ ownerRouter.patch(
   authMiddleware(["owner"]),
   OwnerController.toggleManagerStatusHandler
 );
+
+ownerRouter.put(
+  "/manager",
+  authMiddleware(["owner"]),
+  OwnerController.editManagerHandler
+);
 ownerRouter.get(
   "/subscriptions",
   authMiddleware(["owner"]),

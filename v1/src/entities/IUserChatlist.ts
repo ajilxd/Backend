@@ -1,12 +1,6 @@
-export interface IParticipant {
-  userId: string;
-  name: string;
-  image: string;
-}
-
 export interface IUserChatlist {
   chatId: string;
-  participants: [IParticipant, IParticipant];
+  participants: [string, string];
   createdAt?: Date;
   lastMessage?: string;
   lastMessageTime?: Date;

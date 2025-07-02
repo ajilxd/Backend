@@ -4,7 +4,7 @@ import { Meeting } from "../schemas/meetingSchema";
 
 cron.schedule("*/2 * * * *", async () => {
   try {
-    console.log("Tick tick - Checking for meetings to activate");
+    // console.log("Tick tick - Checking for meetings to activate");
 
     const now = new Date();
 
@@ -17,8 +17,6 @@ cron.schedule("*/2 * * * *", async () => {
       await Meeting.findByIdAndUpdate(meeting._id, { status: "active" });
       logger.info(`Meeting ${meeting._id} activated.`);
     }
-
-    console.log(`${meetingsToActivate.length} meetings activated`);
   } catch (err) {
     console.error("❌ Cron job failed", err);
     logger.error("Cron job failed: " + err);

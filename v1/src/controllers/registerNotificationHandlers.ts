@@ -1,5 +1,6 @@
 import { Namespace, Socket } from "socket.io";
 import { Notification } from "../schemas/notificationSchema";
+import { logger } from "../utils/logger";
 
 interface CustomSocket extends Socket {
   userId?: string;
@@ -76,8 +77,15 @@ export function registerNotificationHandlers(
       const { companyId } = data;
       socket.to(companyId).emit("notification", data);
     }
-    
   );
+
+  socket.on("send-peer-message", (data) => {
+    logger.info(
+      `📨 Message from ${data.senderId} to peer ${data.receiverId} of chatId(${data.chatId}) - ${data.content}`
+    );
+
+    // socket.to(data.receiverId).emit("receive-peer-message", data);
+  });
 
   socket.on("disconnect", () => {
     console.log(`[${socket.id}] disconnected`);

@@ -463,8 +463,31 @@ class OwnerController implements IOwnerController {
       if (result) {
         return sendResponse(res, 200, "fetched owners succesfully", result);
       } else {
-        throw new AppError("No users found", 404);
+        throw new AppError("No users found", 404, "warn");
       }
+    }
+  );
+
+  editManagerHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      
+      const email = req.body.email;
+      const name = req.body.name;
+      if (!email || !name) {
+        throw new AppError("Bad request", 400, "warn");
+      }
+      const managerId = (await this.ManagerService.findManagerByEmail(email))
+        ._id;
+      const updated = await this.ManagerService.updateManager("" + managerId, {
+        email,
+        name,
+      });
+      return sendResponse(
+        res,
+        200,
+        `Manager updation went  succesfully`,
+        updated
+      );
     }
   );
 }

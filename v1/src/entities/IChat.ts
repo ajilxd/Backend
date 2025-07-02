@@ -7,6 +7,6 @@ export interface IChat extends Document {
   senderImageUrl: string;
   room: string;
   content: string;
-  createdAt: {};
+  createdAt: Date;
   updatedAt: Date;
 }

@@ -27,6 +27,7 @@
     "jsonwebtoken": "^9.0.2",
     "mediasoup": "^3.15.8",
     "mongoose": "^8.7.0",
+    "nanoid": "^5.1.5",
     "node-cron": "^4.0.7",
     "nodemailer": "^6.9.15",
     "pino": "^9.6.0",

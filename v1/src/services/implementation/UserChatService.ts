@@ -1,3 +1,4 @@
+import { nanoid } from "nanoid";
 import { IUserChatlist } from "../../entities/IUserChatlist";
 import { IUserMessage } from "../../entities/IUserMessage";
 import AppError from "../../errors/appError";
@@ -48,6 +49,16 @@ class UserChatService implements IUserChatService {
     );
   }
 
+  async findChatByParticipantsId(
+    participantId1: string,
+    participantId2: string
+  ): Promise<IUserChatlist[]> {
+    const result = await this.UserChatlistRepository.find({
+      participants: { $all: [participantId1, participantId2] },
+    });
+    return result;
+  }
+
   async findMessageByChatId(chatId: string): Promise<IUserMessage[]> {
     const result = await this.UserMessageRepository.find({ chatId });
     if (result.length > 0) return result;
@@ -77,6 +88,31 @@ class UserChatService implements IUserChatService {
         this.UserMessageRepository.update(msg._id, { read: true })
       )
     );
+  }
+
+  async getChatMessage(
+    participantId1: string,
+    participantId2: string
+  ): Promise<IUserMessage[]> {
+    const chat = await this.findChatByParticipantsId(participantId1,participantId2);
+    let messages;
+    // check already chat exists or not
+    if (chat.length > 0) {
+      messages = await this.findMessageByChatId(chat[0].chatId);
+      if (messages.length === 0) {
+        throw new AppError(
+          `No messages found at chatId(${chat[0].chatId})`,
+          204,
+          "warn"
+        );
+      }
+      return messages;
+    } else {
+      // creating chat cause none exists
+      const chatId = nanoid();
+      const participants = [participantId1,participantId2]
+      await this.UserChatlistRepository.create({ chatId,participants });
+    }
   }
 }
 

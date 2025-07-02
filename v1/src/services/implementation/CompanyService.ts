@@ -2,20 +2,40 @@ import { errorMap, ErrorType } from "../../constants/response.failture";
 import { ICompany } from "../../entities/ICompany";
 import AppError from "../../errors/appError";
 import CompanyRepository from "../../repositories/implementations/CompanyRepository";
+import ManagerRepository from "../../repositories/implementations/ManagerRepository";
 import OwnerRepository from "../../repositories/implementations/OwnerRepository";
+import UserRepository from "../../repositories/implementations/UserRepository";
 import { ICompanyRepository } from "../../repositories/interface/ICompanyRepository";
+import { IManagerRepository } from "../../repositories/interface/IManagerRepository";
 import { IOwnerRepository } from "../../repositories/interface/IOwnerRepository";
+import { IUserRepository } from "../../repositories/interface/IUserRepository";
 import { ICompanyService } from "../interface/ICompanyService";
+
+export type CompanyMember = {
+  name: string;
+  role: string;
+  userId: string;
+  image: string;
+  companyId: string;
+  joinedDate?: string;
+  blocked?: string;
+};
 
 class CompanyService implements ICompanyService {
   private companyrepository: ICompanyRepository;
   private ownerrepository: IOwnerRepository;
+  private userrepostiory: IUserRepository;
+  private managerreposiory: IManagerRepository;
   constructor(
     companyrepository: ICompanyRepository,
-    ownerrepository: IOwnerRepository
+    ownerrepository: IOwnerRepository,
+    userrepository: IUserRepository,
+    managerrepository: IManagerRepository
   ) {
     this.companyrepository = companyrepository;
     this.ownerrepository = ownerrepository;
+    this.userrepostiory = userrepository;
+    this.managerreposiory = managerrepository;
   }
 
   async createCompany(data: Partial<ICompany>): Promise<ICompany> {
@@ -87,6 +107,40 @@ class CompanyService implements ICompanyService {
       return [];
     }
   }
+
+  async findAllMembersByCompanyId(companyId: string): Promise<CompanyMember[]> {
+    const managers = await this.managerreposiory.find({ companyId });
+    const users = await this.userrepostiory.find({ companyId });
+    let members: CompanyMember[] = [];
+    for (let i of managers) {
+      members.push({
+        name: i.name,
+        role: "manager",
+        userId: "" + i._id,
+        joinedDate: i.createdAt.toLocaleDateString(),
+        image: i.image || "",
+        companyId,
+      });
+    }
+    for (let i of users) {
+      members.push({
+        name: i.name,
+        role: "user",
+        userId: "" + i._id,
+        joinedDate: i.createdAt
+          ? i.createdAt.toLocaleDateString()
+          : "" + new Date(),
+        image: i.image || "",
+        companyId,
+      });
+    }
+    return members;
+  }
 }
 
-export default new CompanyService(CompanyRepository, OwnerRepository);
+export default new CompanyService(
+  CompanyRepository,
+  OwnerRepository,
+  UserRepository,
+  ManagerRepository
+);

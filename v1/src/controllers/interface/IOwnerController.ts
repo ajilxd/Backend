@@ -78,4 +78,10 @@ export interface IOwnerController {
     res: Response,
     next: NextFunction
   ) => Promise<void> | void;
+
+  editManagerHandler: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 }
