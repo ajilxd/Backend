@@ -1,6 +1,8 @@
 import { Namespace, Socket } from "socket.io";
 import { Notification } from "../schemas/notificationSchema";
 import { logger } from "../utils/logger";
+import UserChatService from "../services/implementation/UserChatService";
+import AppError from "../errors/appError";
 
 interface CustomSocket extends Socket {
   userId?: string;
@@ -79,12 +81,63 @@ export function registerNotificationHandlers(
     }
   );
 
-  socket.on("send-peer-message", (data) => {
+  socket.on("send-peer-message", async (data) => {
     logger.info(
       `📨 Message from ${data.senderId} to peer ${data.receiverId} of chatId(${data.chatId}) - ${data.content}`
     );
 
-    // socket.to(data.receiverId).emit("receive-peer-message", data);
+    console.log(`data from send-peer-message`, data);
+
+    const chatExists = await UserChatService.findChatByParticipantsId(
+      data.senderId,
+      data.receiverId
+    );
+    console.log(`chat exists or not ${chatExists.length}`);
+
+    if (!chatExists.length) {
+      const newChat = await UserChatService.createChat({
+        participants: [data.senderId, data.receiverId],
+        lastMessage: data.content,
+        lastMessageTime: new Date(),
+        participantsMetadata: data.participantsMetadata,
+      });
+      const message = await UserChatService.createMessageByChatId({
+        ...data,
+        chatId: newChat.chatId,
+      });
+      const receiverSocketId = CompanyResources.get(
+        data.companyId
+      )?.consumers.find((i) => i.consumerId === data.receiverId)?.socketId;
+      if (receiverSocketId) {
+        socket.to(receiverSocketId).emit("receive-peer-message", message);
+        console.log("Message has been send to the ", receiverSocketId);
+      } else {
+        logger.warn(
+          `Failed to find the socket Id for the consumer with ID ${data.receiverId} of company ${data.companyId} of new chat`
+        );
+      }
+    } else {
+      await UserChatService.updateChatLastMessage(chatExists[0].chatId, {
+        lastMessage: data.content,
+        lastMessageTime: new Date(),
+        participantsMetadata: data.participantsMetadata,
+      });
+      const message = await UserChatService.createMessageByChatId({
+        ...data,
+        chatId: chatExists[0].chatId,
+      });
+      const receiverSocketId = CompanyResources.get(
+        data.companyId
+      )?.consumers.find((i) => i.consumerId === data.receiverId)?.socketId;
+      if (receiverSocketId) {
+        socket.to(receiverSocketId).emit("receive-peer-message", message);
+        console.log("Message has been send to the ", receiverSocketId);
+      } else {
+        logger.warn(
+          `Failed to find the socket Id for the consumer with ID ${data.receiverId} of company ${data.companyId}`
+        );
+      }
+    }
   });
 
   socket.on("disconnect", () => {

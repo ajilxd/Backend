@@ -9,6 +9,7 @@ import { IUserChatlistRepository } from "../../repositories/interface/IUserChatl
 import { IUserMessageRepository } from "../../repositories/interface/IUserMessageRepository";
 
 import { IUserChatService } from "../interface/IUserChatService";
+import { UserMessage } from "aws-sdk/clients/qbusiness";
 
 class UserChatService implements IUserChatService {
   private UserChatlistRepository: IUserChatlistRepository;
@@ -22,22 +23,26 @@ class UserChatService implements IUserChatService {
     this.UserMessageRepository = UserMessageRepository;
   }
 
-  createChat(data: Partial<IUserChatlist>): Promise<IUserChatlist> {
-    return this.UserChatlistRepository.create(data);
+  async createChat(data: Partial<IUserChatlist>): Promise<IUserChatlist> {
+    const chatId = nanoid();
+    return this.UserChatlistRepository.create({ ...data, chatId });
   }
 
-  async updateChat(
+  async updateChatLastMessage(
     chatId: string,
     data: Partial<IUserChatlist>
   ): Promise<IUserChatlist> {
-    const result = await this.UserChatlistRepository.update(chatId, data);
+    const result = await this.UserChatlistRepository.updateChatMessageByChatId(
+      chatId,
+      data
+    );
     if (result) return result;
     throw new AppError(`Failed to update chat (${chatId})`, 500, "error");
   }
 
   async findChatsByUserId(userId: string): Promise<IUserChatlist[]> {
     const result = await this.UserChatlistRepository.find({
-      "participants.userId": userId,
+      participants: userId,
     });
 
     if (result.length > 0) return result;
@@ -57,6 +62,21 @@ class UserChatService implements IUserChatService {
       participants: { $all: [participantId1, participantId2] },
     });
     return result;
+  }
+
+  async createMessageByChatId(data: Partial<IUserMessage>) {
+    if (!data.chatId) {
+      throw new AppError("No chat id ", 400, "warn");
+    }
+
+    if (!data.content) {
+      throw new AppError("No message content found", 400, "warn");
+    }
+
+    if (!data.type) {
+      throw new AppError("No message type found", 400, "warn");
+    }
+    return this.UserMessageRepository.create(data);
   }
 
   async findMessageByChatId(chatId: string): Promise<IUserMessage[]> {
@@ -94,25 +114,19 @@ class UserChatService implements IUserChatService {
     participantId1: string,
     participantId2: string
   ): Promise<IUserMessage[]> {
-    const chat = await this.findChatByParticipantsId(participantId1,participantId2);
-    let messages;
-    // check already chat exists or not
-    if (chat.length > 0) {
-      messages = await this.findMessageByChatId(chat[0].chatId);
-      if (messages.length === 0) {
-        throw new AppError(
-          `No messages found at chatId(${chat[0].chatId})`,
-          204,
-          "warn"
-        );
-      }
-      return messages;
-    } else {
-      // creating chat cause none exists
-      const chatId = nanoid();
-      const participants = [participantId1,participantId2]
-      await this.UserChatlistRepository.create({ chatId,participants });
+    const chat = await this.findChatByParticipantsId(
+      participantId1,
+      participantId2
+    );
+    if (!chat.length) {
+      throw new AppError(
+        `No chats with ${participantId1} ${participantId2}`,
+        204
+      );
     }
+
+    const messages = await this.findMessageByChatId(chat[0].chatId);
+    return messages;
   }
 }
 

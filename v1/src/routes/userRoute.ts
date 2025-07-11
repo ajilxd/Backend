@@ -22,3 +22,17 @@ userRouter.get(
   authMiddleware(["user"]),
   CompanyController.getCompanyMembers
 );
+
+userRouter.get(
+  "/peermessages",
+  authMiddleware(["user"]),
+  UserController.getMessagesHandler
+);
+
+userRouter.get(
+  "/peerchats",
+  authMiddleware(["user"]),
+  UserController.getChatsHandler
+);
+
+userRouter.get("/events/:userId", UserController.getCalendarEventsHandler);

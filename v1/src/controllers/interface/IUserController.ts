@@ -19,6 +19,26 @@ export interface IUserController {
     next: NextFunction
   ): Promise<void> | void;
 
+  getNotificationsHandler(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> | void;
+  getChatsHandler: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 
-  getNotificationsHandler(req: Request, res: Response, next: NextFunction):Promise<void> | void
+  getMessagesHandler: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
+
+  getCalendarEventsHandler: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 }

@@ -105,8 +105,8 @@ class TaskController implements ITaskController {
       if (field === "taskId") {
         field = "_id";
       }
-      const query: Record<string, mongoose.Types.ObjectId> = {};
-      query[field] = new mongoose.Types.ObjectId(value);
+      const query: Record<string, string> = {};
+      query[field] = value;
       const result = await this.TaskService.getTasksQuery(query);
       if (result) {
         return sendResponse(

@@ -1,6 +1,16 @@
 import mongoose, { Schema } from "mongoose";
 import { IUserChatlist } from "../entities/IUserChatlist";
 
+const ParticipantsMetadata = new mongoose.Schema({
+  name:String,
+  email:String,
+  image:String,
+  userId:String,
+  role:String,
+  status:String,
+  lastSeen:Date
+},{_id:false})
+
 const ChatSchema: Schema<IUserChatlist> = new mongoose.Schema(
   {
     chatId: {
@@ -22,6 +32,7 @@ const ChatSchema: Schema<IUserChatlist> = new mongoose.Schema(
     lastMessageTime: {
       type: Date,
     },
+    participantsMetadata:[ParticipantsMetadata,ParticipantsMetadata]
   },
   { timestamps: true }
 );

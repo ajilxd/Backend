@@ -8,16 +8,27 @@ import AppError from "../../errors/appError";
 import mongoose from "mongoose";
 import { INotificationService } from "../../services/interface/INotificationService";
 import NotificationService from "../../services/implementation/NotificationService";
+import { IUserChatService } from "../../services/interface/IUserChatService";
+import UserChatService from "../../services/implementation/UserChatService";
+import { EventType } from "../../types";
+import { ITaskService } from "../../services/interface/ITaskService";
+import TaskService from "../../services/implementation/TaskService";
 
 class UserController implements IUserController {
   private UserService: IUserService;
   private NotificationService: INotificationService;
+  private UserChatService: IUserChatService;
+  private TaskService: ITaskService;
   constructor(
     UserService: IUserService,
-    NotificationService: INotificationService
+    NotificationService: INotificationService,
+    UserChatService: IUserChatService,
+    TaskService: ITaskService
   ) {
     this.UserService = UserService;
     this.NotificationService = NotificationService;
+    this.UserChatService = UserChatService;
+    this.TaskService = TaskService;
   }
 
   logoutHandler = catchAsync(
@@ -111,6 +122,68 @@ class UserController implements IUserController {
       sendResponse(res, 200, "notifications fetched succesfully", result);
     }
   );
+
+  getChatsHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { userId } = req.query;
+      const chats = await this.UserChatService.findChatsByUserId("" + userId);
+      sendResponse(
+        res,
+        200,
+        `Chats fetched succesfully for id ${userId}`,
+        chats
+      );
+    }
+  );
+
+  getMessagesHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { chatId } = req.query;
+      const messages = await this.UserChatService.findMessageByChatId(
+        "" + chatId
+      );
+      sendResponse(
+        res,
+        200,
+        `${messages.length - 1} messages fetched succesfully`,
+        messages
+      );
+    }
+  );
+
+  getCalendarEventsHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { userId } = req.params;
+      if (!userId) {
+        throw new AppError("Bad request -userid is required", 400, "warn");
+      }
+      const query: Record<string, string> = {};
+      query["assignee.id"] = userId;
+      const Tasks = await this.TaskService.getTasksQuery(query);
+      console.log("Tasks", Tasks);
+      let Events: EventType[] = [];
+      if (Tasks.length > 0) {
+        Events = Tasks.filter((i) => i.dueDate instanceof Date).map((i) => {
+          return {
+            title: i.name,
+            start: i.createdAt,
+            end: i.dueDate,
+            id: "" + i._id,
+            assignee: i.assignee,
+            description: i.description,
+            status: i.status,
+            type: "Task",
+          };
+        });
+      }
+      sendResponse(res, 200, "Succesfully fetched events", Events);
+    }
+  );
 }
 
-export default new UserController(UserService, NotificationService);
+export default new UserController(
+  UserService,
+  NotificationService,
+  UserChatService,
+  TaskService
+);

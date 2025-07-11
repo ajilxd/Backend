@@ -47,3 +47,20 @@ managerRouter.get(
   authMiddleware(["manager"]),
   CompanyController.getCompanyMembers
 );
+
+managerRouter.get(
+  "/peermessages",
+  authMiddleware(["manager"]),
+  managerController.getMessagesHandler
+);
+
+managerRouter.get(
+  "/peerchats",
+  authMiddleware(["manager"]),
+  managerController.getChatsHandler
+);
+
+managerRouter.get(
+  "/events/:managerId",
+  managerController.getCalendarEventsHandler
+);

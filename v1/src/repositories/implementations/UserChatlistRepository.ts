@@ -10,6 +10,11 @@ class UserChatlistRepository
   constructor(model: Model<IUserChatlist>) {
     super(model);
   }
+
+  updateChatMessageByChatId(chatId:string,data:Partial<IUserChatlist>):Promise<IUserChatlist|null>{
+    return this.model.findOneAndUpdate({chatId},{$set:{lastMessage:data.lastMessage,lastMessageTime:data.lastMessageTime}},{new:true}).exec()
+   
+  }
 }
 
 export default new UserChatlistRepository(UserChatlist);

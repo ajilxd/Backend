@@ -470,14 +470,16 @@ class OwnerController implements IOwnerController {
 
   editManagerHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      
       const email = req.body.email;
       const name = req.body.name;
+      const managerId = req.body.id;
+      if (!managerId) {
+        throw new AppError("Bad request", 400, "warn");
+      }
       if (!email || !name) {
         throw new AppError("Bad request", 400, "warn");
       }
-      const managerId = (await this.ManagerService.findManagerByEmail(email))
-        ._id;
+
       const updated = await this.ManagerService.updateManager("" + managerId, {
         email,
         name,

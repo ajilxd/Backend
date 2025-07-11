@@ -1,7 +1,5 @@
 import { IManagerController } from "../interface/IManagerController";
 import ManagerService from "../../services/implementation/ManagerService";
-import { IManager } from "../../entities/IManager";
-
 import UserService from "../../services/implementation/UserService";
 import { IUserService } from "../../services/interface/IUserService";
 import { IManagerService } from "../../services/interface/IManagerService";
@@ -15,25 +13,34 @@ import OwnerService from "../../services/implementation/OwnerService";
 import mongoose from "mongoose";
 import { INotificationService } from "../../services/interface/INotificationService";
 import NotificationService from "../../services/implementation/NotificationService";
-import { ICompanyService } from "../../services/interface/ICompanyService";
-import CompanyService from "../../services/implementation/CompanyService";
+import { IUserChatService } from "../../services/interface/IUserChatService";
+import UserChatService from "../../services/implementation/UserChatService";
+import TaskService from "../../services/implementation/TaskService";
+import { ITaskService } from "../../services/interface/ITaskService";
+import { EventType } from "../../types";
 
 class managerController implements IManagerController {
   private ManagerService: IManagerService;
   private UserService: IUserService;
   private OwnerService: IOwnerService;
   private NotificationService: INotificationService;
+  private UserChatService: IUserChatService;
+  private TaskService: ITaskService;
 
   constructor(
     ManagerService: IManagerService,
     UserService: IUserService,
     OwnerService: IOwnerService,
-    NotificationService: INotificationService
+    NotificationService: INotificationService,
+    UserChatService: IUserChatService,
+    TaskService: ITaskService
   ) {
     this.ManagerService = ManagerService;
     this.UserService = UserService;
     this.OwnerService = OwnerService;
     this.NotificationService = NotificationService;
+    this.UserChatService = UserChatService;
+    this.TaskService = TaskService;
   }
 
   updateProfile = catchAsync(
@@ -214,11 +221,67 @@ class managerController implements IManagerController {
       sendResponse(res, 200, "notifications fetched succesfully", result);
     }
   );
+
+  getChatsHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { userId } = req.query;
+      const chats = await this.UserChatService.findChatsByUserId("" + userId);
+      sendResponse(
+        res,
+        200,
+        `Chats fetched succesfully for id ${userId}`,
+        chats
+      );
+    }
+  );
+
+  getMessagesHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { chatId } = req.query;
+      const messages = await this.UserChatService.findMessageByChatId(
+        "" + chatId
+      );
+      sendResponse(
+        res,
+        200,
+        `${messages.length - 1} messages fetched succesfully`,
+        messages
+      );
+    }
+  );
+
+  getCalendarEventsHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { managerId } = req.params;
+      const Tasks = await this.TaskService.getTasksQuery({
+        creatorId: managerId,
+      });
+      console.log("Tasks", Tasks);
+      let Events: EventType[] = [];
+      if (Tasks.length > 0) {
+        Events = Tasks.filter((i) => i.dueDate instanceof Date).map((i) => {
+          return {
+            title: i.name,
+            start: i.createdAt,
+            end: i.dueDate,
+            id: "" + i._id,
+            assignee: i.assignee,
+            description: i.description,
+            status: i.status,
+            type: "Task",
+          };
+        });
+      }
+      sendResponse(res, 200, "Succesfully fetched events", Events);
+    }
+  );
 }
 
 export default new managerController(
   ManagerService,
   UserService,
   OwnerService,
-  NotificationService
+  NotificationService,
+  UserChatService,
+  TaskService
 );

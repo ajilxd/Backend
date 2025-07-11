@@ -3,7 +3,7 @@ import { IUserMessage } from "../../entities/IUserMessage";
 
 export interface IUserChatService {
   createChat(data: Partial<IUserChatlist>): Promise<IUserChatlist>;
-  updateChat(
+  updateChatLastMessage(
     chatId: string,
     data: Partial<IUserChatlist>
   ): Promise<IUserChatlist>;

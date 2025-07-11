@@ -32,10 +32,6 @@ const userMessageSchema: Schema<IUserMessage> = new mongoose.Schema(
       duration: Number,
       extension: String,
     },
-    name: {
-      type: String,
-      required: true,
-    },
     read: {
       type: Boolean,
       default: false,

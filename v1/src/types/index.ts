@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { ObjectId } from "mongoose";
 
 export interface IAsyncHandler {
   (req: Request, res: Response, next: NextFunction): Promise<void>;
@@ -53,4 +54,22 @@ export type updateSpaceByQueryType = {
   status?: string;
   visibility?: string;
   managers?: string;
+};
+
+type AssigneeType = {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+};
+
+export type EventType = {
+  title: string;
+  start: Date;
+  end: Date | undefined;
+  id: string;
+  assignee?: AssigneeType;
+  description?: string;
+  status?: string;
+  type: "Task" | "meeting";
 };

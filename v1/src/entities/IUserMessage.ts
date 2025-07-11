@@ -19,5 +19,4 @@ export interface IUserMessage {
   createdAt?: Date;
   read?: boolean;
   isDeleted?: boolean;
-  name: string;
 }

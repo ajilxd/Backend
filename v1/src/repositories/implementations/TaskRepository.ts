@@ -8,7 +8,7 @@ import { BaseRepository } from "./BaseRepository";
 export type TaskQueryType = {
   taskId?: string;
   spaceId?: string;
-  assignee?: string;
+  "assignee.id"?: string;
   creatorId?: string;
 };
 
@@ -26,8 +26,10 @@ export class TaskRepository
 
   async getTaskByQuery(query: TaskQueryType): Promise<ITask[]> {
     const result = await Task.find(query);
+    console.log(result);
+    console.log(query);
     if (!result.length) {
-      throw new AppError("No space found", 404);
+      throw new AppError("No task found", 404);
     }
     return result;
   }
