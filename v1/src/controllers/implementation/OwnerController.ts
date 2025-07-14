@@ -19,6 +19,7 @@ import { logger } from "../../utils/logger";
 import { IOwner } from "../../entities/IOwner";
 import { IUserService } from "../../services/interface/IUserService";
 import UserService from "../../services/implementation/UserService";
+import { features } from "process";
 
 class OwnerController implements IOwnerController {
   private OwnerService: IOwnerService;
@@ -289,7 +290,10 @@ class OwnerController implements IOwnerController {
           "warn"
         );
       }
-      const managerData = await this.ManagerService.createManager(req.body);
+      const managerData = await this.ManagerService.createManager({
+        ...req.body,
+        companyName: validOwner.company.companyName,
+      });
 
       sendResponse(
         res,
@@ -399,6 +403,11 @@ class OwnerController implements IOwnerController {
 
       const plainOwnerData = ownerData.toObject();
 
+      const subscriptionData =
+        await this.SubscriptionService.findSubscriptionById(
+          ownerData.subscription.subscription_id!
+        );
+
       const stripeSubscriptionData =
         await stripeInstance.subscriptions.retrieve(
           ownerData.subscription.stripe_subscription_id
@@ -411,8 +420,9 @@ class OwnerController implements IOwnerController {
         cancel_at_period_end: stripeSubscriptionData.cancel_at_period_end,
         cancel_at: stripeSubscriptionData.cancel_at,
         canceled_at: stripeSubscriptionData.canceled_at,
+        features: subscriptionData.features,
       };
-      console.log("active subscription for " + req.params.id + "" + result);
+
       return sendResponse(
         res,
         200,
