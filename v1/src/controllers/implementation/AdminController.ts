@@ -7,13 +7,27 @@ import { IAdminService } from "../../services/interface/IAdminService";
 import { catchAsync } from "../../errors/catchAsyc";
 import { sendResponse } from "../../utils/sendResponse";
 import { logger } from "../../utils/logger";
+import { IManagerService } from "../../services/interface/IManagerService";
+import { IUserService } from "../../services/interface/IUserService";
+import ManagerService from "../../services/implementation/ManagerService";
+import UserService from "../../services/implementation/UserService";
+import { AccountType } from "../../types";
 
 class AdminController implements IAdminController {
   private AdminService: IAdminService;
   private OwnerService: IOwnerService;
-  constructor(AdminService: IAdminService, OwnerService: IOwnerService) {
+  private ManagerService: IManagerService;
+  private UserService: IUserService;
+  constructor(
+    AdminService: IAdminService,
+    OwnerService: IOwnerService,
+    ManagerService: IManagerService,
+    UserService: IUserService
+  ) {
     this.AdminService = AdminService;
     this.OwnerService = OwnerService;
+    this.ManagerService = ManagerService;
+    this.UserService = UserService;
   }
 
   loginAdmin = catchAsync(
@@ -69,6 +83,54 @@ class AdminController implements IAdminController {
       }
     }
   );
+
+  fetchAllusersHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      let owners = await this.OwnerService.getOwners();
+      let managers = await this.ManagerService.getAllManagers();
+      let users = await this.UserService.getUsers();
+      let accounts: AccountType[] = [];
+      owners.map((i) => {
+        accounts.push({
+          role: "user",
+          name: i.name,
+          image: i.image,
+          userId: "" + i._id,
+          company: i.company.companyName,
+          status: i.isBlocked ? "inactive" : "active",
+          joinedAt: i.createdAt,
+        });
+      });
+      users.map((i) => {
+        accounts.push({
+          role: "user",
+          name: i.name,
+          image: i.image!,
+          userId: "" + i._id,
+          company: i.companyName,
+          status: i.isBlocked ? "inactive" : "active",
+          joinedAt: i.createdAt,
+        });
+      });
+      managers.map((i) => {
+        accounts.push({
+          role: "manager",
+          name: i.name,
+          image: i.image!,
+          userId: "" + i._id,
+          company: i.companyName,
+          status: i.isBlocked ? "inactive" : "active",
+          joinedAt: i.createdAt,
+        });
+      });
+      sendResponse(res, 200, "Succesfully fetched all users", accounts);
+    }
+  );
 }
 
-export default new AdminController(AdminService, OwnerService);
+export default new AdminController(
+  AdminService,
+  OwnerService,
+  ManagerService,
+  UserService
+);

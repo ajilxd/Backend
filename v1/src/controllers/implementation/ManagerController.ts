@@ -268,7 +268,7 @@ class managerController implements IManagerController {
       console.log("Tasks", Tasks);
       let Events: EventType[] = [];
       if (Tasks.length > 0) {
-        Events = Tasks.filter((i) => i.dueDate instanceof Date).map((i) => {
+        Events = Tasks.map((i) => {
           return {
             title: i.name,
             start: i.createdAt,

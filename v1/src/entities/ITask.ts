@@ -55,7 +55,7 @@ export interface ITask extends Document {
   files: File[];
 
   archived: boolean;
-  dueDate?: Date;
+  dueDate: Date;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -31,3 +31,5 @@ adminRouter.patch(
 );
 
 adminRouter.get("/logout", AdminController.logoutAdmin);
+
+adminRouter.get("/users", AdminController.fetchAllusersHandler);

@@ -32,11 +32,6 @@ class UserService implements IUserService {
 
   async getUsers(): Promise<IUser[]> {
     const users = await this.userRepository.findAll();
-
-    if (users.length === 0) {
-      throw new AppError("No users found", 204, "warn");
-    }
-
     return users;
   }
 
@@ -94,10 +89,9 @@ class UserService implements IUserService {
     }
   }
 
-  async findUserByEmail(email:string):Promise<IUser|null>{
-    return await this.userRepository.findOne({email})
+  async findUserByEmail(email: string): Promise<IUser | null> {
+    return await this.userRepository.findOne({ email });
   }
-  
 
   async getUsersQuery(query: UserQueryType): Promise<IUser[]> {
     const result = await this.userRepository.getUsersByQuery(query);

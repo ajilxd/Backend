@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import { ObjectId } from "mongoose";
 
 export interface IAsyncHandler {
   (req: Request, res: Response, next: NextFunction): Promise<void>;
@@ -66,10 +65,20 @@ type AssigneeType = {
 export type EventType = {
   title: string;
   start: Date;
-  end: Date | undefined;
+  end: Date;
   id: string;
   assignee?: AssigneeType;
   description?: string;
   status?: string;
   type: "Task" | "meeting";
+};
+
+export type AccountType = {
+  role: "user" | "manager" | "owner";
+  name: string;
+  userId: string;
+  status: "active" | "inactive";
+  company: string;
+  joinedAt: Date;
+  image: string;
 };

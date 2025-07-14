@@ -15,10 +15,10 @@ export interface IOwner extends Document {
   role: UserRole;
   bio: string;
   image: string;
-  company:{
-      companyName:string,
-    companyId:string
-    },
+  company: {
+    companyName: string;
+    companyId: string;
+  };
   subscription?: {
     name?: string;
     isActive?: boolean;
@@ -34,6 +34,7 @@ export interface IOwner extends Document {
     expires_at?: Date;
     invoice?: string;
   };
+  createdAt: Date;
 
   invoices?: [];
 

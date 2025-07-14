@@ -17,5 +17,5 @@ export interface IUser extends Document {
   bio: string;
   managerName: string;
   companyName: string;
-  createdAt?: Date;
+  createdAt: Date;
 }

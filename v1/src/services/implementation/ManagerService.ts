@@ -104,5 +104,10 @@ class ManagerService implements IManagerService {
     const result = await this.managerRepository.find(query);
     return result;
   }
+
+  async getAllManagers(): Promise<IManager[]> {
+    const managers = await this.managerRepository.findAll();
+    return managers;
+  }
 }
 export default new ManagerService(ManagerRepository, UserRepository);
