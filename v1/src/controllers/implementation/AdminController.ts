@@ -92,7 +92,7 @@ class AdminController implements IAdminController {
       let accounts: AccountType[] = [];
       owners.map((i) => {
         accounts.push({
-          role: "user",
+          role: "owner",
           name: i.name,
           image: i.image,
           userId: "" + i._id,
