@@ -30,4 +30,10 @@ export interface IAdminController {
     res: Response,
     next: NextFunction
   ) => Promise<void> | void;
+
+  BlockUser: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 }

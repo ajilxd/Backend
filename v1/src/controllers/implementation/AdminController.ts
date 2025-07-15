@@ -12,6 +12,8 @@ import { IUserService } from "../../services/interface/IUserService";
 import ManagerService from "../../services/implementation/ManagerService";
 import UserService from "../../services/implementation/UserService";
 import { AccountType } from "../../types";
+import AppError from "../../errors/appError";
+import { IManager } from "../../entities/IManager";
 
 class AdminController implements IAdminController {
   private AdminService: IAdminService;
@@ -86,6 +88,16 @@ class AdminController implements IAdminController {
 
   fetchAllusersHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
+      const itemPerPage = Number(req.query.itemPerPage);
+      const page = Number(req.query.page);
+
+      if (!page || !itemPerPage) {
+        throw new AppError(
+          "Bad request - page/itemPerpage missing",
+          400,
+          "warn"
+        );
+      }
       let owners = await this.OwnerService.getOwners();
       let managers = await this.ManagerService.getAllManagers();
       let users = await this.UserService.getUsers();
@@ -123,7 +135,37 @@ class AdminController implements IAdminController {
           joinedAt: i.createdAt,
         });
       });
-      sendResponse(res, 200, "Succesfully fetched all users", accounts);
+      const totalPage = Math.ceil(accounts.length / itemPerPage);
+      const skip = (page - 1) * itemPerPage;
+      const paginatedAccounts = accounts.slice(skip, skip + itemPerPage);
+      sendResponse(res, 200, "Succesfully fetched all users", {
+        users: paginatedAccounts,
+        totalPage,
+      });
+    }
+  );
+
+  BlockUser = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { role, id, block } = req.body;
+      if (!role || !id || !("block" in req.body)) {
+        console.log(req.body);
+        throw new AppError(`Bad request - missing fields`, 400, "warn");
+      }
+      if (role === "user") {
+        await this.UserService.updateUser(id, { isBlocked: block });
+      } else if (role === "manager") {
+        await this.ManagerService.updateManager(id, { isBlocked: block });
+      } else if (role === "owner") {
+        await this.OwnerService.updateOwner(id, { isBlocked: block });
+      } else {
+        throw new AppError(`Invalid role ${role}`, 400, "warn");
+      }
+      sendResponse(
+        res,
+        200,
+        `succesfully updated the status of ${role} with  ${id}`
+      );
     }
   );
 }
