@@ -94,8 +94,11 @@ class AdminController implements IAdminController {
 
   fetchAllusersHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const itemPerPage = Number(req.query.itemPerPage);
-      const page = Number(req.query.page);
+      const search = (req.query.search as string)?.trim().toLowerCase();
+      const status = (req.query.status as string)?.trim().toLowerCase();
+      const role = (req.query.role as string)?.trim().toLowerCase();
+      const page = +(req.query.page as string)?.trim().toLowerCase() || 1;
+      const itemPerPage = +(req.query.itemPerPage as string) || 10;
 
       if (!page || !itemPerPage) {
         throw new AppError(
@@ -141,6 +144,23 @@ class AdminController implements IAdminController {
           joinedAt: i.createdAt,
         });
       });
+
+      if (role && role !== "") {
+        accounts = accounts.filter((i) => i.role.toLowerCase() === role);
+      }
+
+      if (search && search !== "") {
+        accounts = accounts.filter(
+          (i) =>
+            i.name.toLowerCase().includes(search) ||
+            i.company.toLowerCase().includes(search)
+        );
+      }
+
+      if (status && status !== "") {
+        accounts = accounts.filter((i) => i.status === status);
+      }
+
       const totalPage = Math.ceil(accounts.length / itemPerPage);
       const skip = (page - 1) * itemPerPage;
       const paginatedAccounts = accounts.slice(skip, skip + itemPerPage);
