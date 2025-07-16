@@ -2,8 +2,6 @@ import { IPaymentController } from "../interface/IPaymentController";
 import { Request, Response, NextFunction } from "express";
 import { stripeInstance } from "../..";
 import { sendResponse } from "../../utils/sendResponse";
-import { errorMap, ErrorType } from "../../constants/response.failture";
-import { successMap, SuccessType } from "../../constants/response.succesful";
 import { logger } from "../../utils/logger";
 import AppError from "../../errors/appError";
 import { catchAsync } from "../../errors/catchAsyc";
@@ -46,14 +44,8 @@ class PaymentController implements IPaymentController {
 
       const session = await stripeInstance.checkout.sessions.create({
         payment_method_types: ["card"],
-        line_items: [
-          {
-            price: planId,
-            quantity: 1,
-          },
-        ],
+        line_items: [{ price: planId, quantity: 1 }],
         customer: stripeCustomerId,
-
         mode: "subscription",
         success_url: successUrl,
         cancel_url: cancelUrl,
@@ -62,23 +54,23 @@ class PaymentController implements IPaymentController {
           subscriptionId,
           ownerId,
         },
+        subscription_data: {
+          metadata: {
+            brandName,
+            subscriptionId,
+            ownerId,
+          },
+        },
       });
 
       if (!session) {
-        return sendResponse(
-          res,
-          errorMap[ErrorType.ServerError].code,
-          "Failed to create checkout session"
-        );
+        return sendResponse(res, 500, "Failed to create checkout session");
       }
-      return sendResponse(
-        res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message,
-        { id: session.id }
-      );
+      return sendResponse(res, 200, "Succesfully created a checkout session ", {
+        id: session.id,
+      });
     } catch (error: any) {
-      logger.error("Stripe subscription checkout error:", {
+      console.error("Stripe subscription checkout error:", {
         message: error.message,
         stack: error.stack,
       });

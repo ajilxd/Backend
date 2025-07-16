@@ -14,22 +14,27 @@ import UserService from "../../services/implementation/UserService";
 import { AccountType } from "../../types";
 import AppError from "../../errors/appError";
 import { IManager } from "../../entities/IManager";
+import { ITransactionService } from "../../services/interface/ITransactionService";
+import TransactionService from "../../services/implementation/TransactionService";
 
 class AdminController implements IAdminController {
   private AdminService: IAdminService;
   private OwnerService: IOwnerService;
   private ManagerService: IManagerService;
   private UserService: IUserService;
+  private TransactionService: ITransactionService;
   constructor(
     AdminService: IAdminService,
     OwnerService: IOwnerService,
     ManagerService: IManagerService,
-    UserService: IUserService
+    UserService: IUserService,
+    TransactionService: ITransactionService
   ) {
     this.AdminService = AdminService;
     this.OwnerService = OwnerService;
     this.ManagerService = ManagerService;
     this.UserService = UserService;
+    this.TransactionService = TransactionService;
   }
 
   loginAdmin = catchAsync(
@@ -168,11 +173,30 @@ class AdminController implements IAdminController {
       );
     }
   );
+
+  fetchAllTransactions = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!req.query.page || !req.query.itemPerPage) {
+        throw new AppError("Bad request - Missing fields", 400, "warn");
+      }
+      const transactions = await this.TransactionService.fetchAll();
+      const page = +req.query.page;
+      const itemPerPage = +req.query.itemPerPage;
+      const totalPage = Math.ceil(transactions.length / itemPerPage);
+      const skip = (page - 1) * itemPerPage;
+      const paginatedData = transactions.slice(skip, skip + itemPerPage);
+      sendResponse(res, 200, "Succesfully fetched transactions", {
+        transactions: paginatedData,
+        totalPage,
+      });
+    }
+  );
 }
 
 export default new AdminController(
   AdminService,
   OwnerService,
   ManagerService,
-  UserService
+  UserService,
+  TransactionService
 );

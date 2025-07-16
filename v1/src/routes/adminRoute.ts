@@ -35,3 +35,5 @@ adminRouter.get("/logout", AdminController.logoutAdmin);
 adminRouter.get("/users", AdminController.fetchAllusersHandler);
 
 adminRouter.patch("/users", AdminController.BlockUser);
+
+adminRouter.get("/transactions", AdminController.fetchAllTransactions);

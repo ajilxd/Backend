@@ -36,4 +36,10 @@ export interface IAdminController {
     res: Response,
     next: NextFunction
   ) => Promise<void> | void;
+
+  fetchAllTransactions: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 }
