@@ -16,6 +16,7 @@ import AppError from "../../errors/appError";
 import { IManager } from "../../entities/IManager";
 import { ITransactionService } from "../../services/interface/ITransactionService";
 import TransactionService from "../../services/implementation/TransactionService";
+import { ITransaction } from "../../entities/ITransaction";
 
 class AdminController implements IAdminController {
   private AdminService: IAdminService;
@@ -176,12 +177,26 @@ class AdminController implements IAdminController {
 
   fetchAllTransactions = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      if (!req.query.page || !req.query.itemPerPage) {
-        throw new AppError("Bad request - Missing fields", 400, "warn");
+      const search = (req.query.search as string)?.trim().toLowerCase();
+      const status = (req.query.status as string)?.trim().toLowerCase();
+      const page = +(req.query.page as string)?.trim().toLowerCase() || 1;
+      const itemPerPage = +(req.query.itemPerPage as string) || 10;
+      let transactions: ITransaction[] =
+        await this.TransactionService.fetchAll();
+
+      if (status && status !== "") {
+        transactions = transactions.filter(
+          (i) => i.status.toLowerCase() === status
+        );
       }
-      const transactions = await this.TransactionService.fetchAll();
-      const page = +req.query.page;
-      const itemPerPage = +req.query.itemPerPage;
+
+      if (search && search !== "") {
+        transactions = transactions.filter(
+          (i) =>
+            i.companyName.toLowerCase().includes(search) ||
+            i.customerName.toLowerCase().includes(search)
+        );
+      }
       const totalPage = Math.ceil(transactions.length / itemPerPage);
       const skip = (page - 1) * itemPerPage;
       const paginatedData = transactions.slice(skip, skip + itemPerPage);
