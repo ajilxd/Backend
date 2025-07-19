@@ -17,6 +17,15 @@ import { IManager } from "../../entities/IManager";
 import { ITransactionService } from "../../services/interface/ITransactionService";
 import TransactionService from "../../services/implementation/TransactionService";
 import { ITransaction } from "../../entities/ITransaction";
+import { ISubscription } from "../../entities/ISubscription";
+import { ISubscriptionService } from "../../services/interface/ISubscriptionService";
+import SubscriptionService from "../../services/implementation/SubscriptionService";
+
+interface userCount {
+  userCount?: number;
+}
+
+type SubscriptionAdminType = ISubscription & userCount;
 
 class AdminController implements IAdminController {
   private AdminService: IAdminService;
@@ -24,18 +33,21 @@ class AdminController implements IAdminController {
   private ManagerService: IManagerService;
   private UserService: IUserService;
   private TransactionService: ITransactionService;
+  private SubscripitonService: ISubscriptionService;
   constructor(
     AdminService: IAdminService,
     OwnerService: IOwnerService,
     ManagerService: IManagerService,
     UserService: IUserService,
-    TransactionService: ITransactionService
+    TransactionService: ITransactionService,
+    SubscriptionService: ISubscriptionService
   ) {
     this.AdminService = AdminService;
     this.OwnerService = OwnerService;
     this.ManagerService = ManagerService;
     this.UserService = UserService;
     this.TransactionService = TransactionService;
+    this.SubscripitonService = SubscriptionService;
   }
 
   loginAdmin = catchAsync(
@@ -199,7 +211,7 @@ class AdminController implements IAdminController {
     async (req: Request, res: Response, next: NextFunction) => {
       const search = (req.query.search as string)?.trim().toLowerCase();
       const status = (req.query.status as string)?.trim().toLowerCase();
-      const page = +(req.query.page as string)?.trim().toLowerCase() || 1;
+      const page = +(req.query.page as string) || 1;
       const itemPerPage = +(req.query.itemPerPage as string) || 10;
       let transactions: ITransaction[] =
         await this.TransactionService.fetchAll();
@@ -226,6 +238,72 @@ class AdminController implements IAdminController {
       });
     }
   );
+
+  fetchAllSubscriptions = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const search = (req.query.search as string)?.trim().toLowerCase();
+      const status = (req.query.status as string)?.trim().toLowerCase();
+      const billingCycle = (req.query.billingCycle as string)
+        ?.trim()
+        .toLowerCase();
+      const page = +(req.query.page as string) || 1;
+      const itemPerPage = +(req.query.itemPerPage as string) || 10;
+      const transactions = await this.TransactionService.fetchAll();
+
+      let subscriptions: SubscriptionAdminType[] =
+        await this.SubscripitonService.fetchSubscriptions();
+
+      const subIds = subscriptions.map((i) => "" + i._id);
+
+      const subMap = new Map();
+      for (let i of subIds) {
+        let value = 0;
+        for (let t of transactions) {
+          if (
+            t.status === "success" &&
+            t.subscriptionId === i &&
+            t.isInitial === true
+          ) {
+            value++;
+          }
+        }
+        subMap.set(i, value);
+      }
+
+      subscriptions = subscriptions.map((i) => ({
+        ...i.toObject(),
+        userCount: subMap.get("" + i._id),
+      }));
+
+      if (status && status !== "") {
+        subscriptions = subscriptions.filter((i) => {
+          return i.isActive === (status === "active");
+        });
+      }
+
+      if (search && search !== "") {
+        subscriptions = subscriptions.filter((i) => {
+          return i.name.toLowerCase().includes(search);
+        });
+      }
+
+      if (billingCycle && billingCycle !== "") {
+        subscriptions = subscriptions.filter((i) => {
+          return i.billingCycleType === billingCycle;
+        });
+      }
+
+      const totalPage = Math.ceil(subscriptions.length / itemPerPage);
+      const skip = (page - 1) * itemPerPage;
+      const paginatedData = subscriptions.slice(skip, skip + itemPerPage);
+      console.log("data after pagination", paginatedData);
+
+      sendResponse(res, 200, "Successfully fetched subscriptions", {
+        subscriptions: paginatedData,
+        totalPage,
+      });
+    }
+  );
 }
 
 export default new AdminController(
@@ -233,5 +311,6 @@ export default new AdminController(
   OwnerService,
   ManagerService,
   UserService,
-  TransactionService
+  TransactionService,
+  SubscriptionService
 );

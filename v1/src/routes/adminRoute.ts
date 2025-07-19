@@ -12,12 +12,8 @@ adminRouter.post(
   requestValidator(AdminLoginDto),
   AdminController.loginAdmin
 );
-adminRouter.post(
-  "/subscription",
-  requestValidator(CreateSubscriptionDto),
-  SubscriptionController.AddSubscription
-);
-adminRouter.get("/subscriptions", SubscriptionController.getSubscriptions);
+adminRouter.post("/subscription", SubscriptionController.AddSubscription);
+adminRouter.get("/subscriptions", AdminController.fetchAllSubscriptions);
 
 adminRouter.patch(
   "/toggle-subscription-status/:id",

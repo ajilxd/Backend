@@ -1,21 +1,72 @@
-import { Schema, model } from "mongoose";
+import mongoose from "mongoose";
 import { ISubscription } from "../entities/ISubscription";
 
-const SubscriptionSchema: Schema<ISubscription<string>> = new Schema(
+const subscriptionSchema = new mongoose.Schema(
   {
-    billingCycle: { type: String, required: true },
-    amount: { type: String, required: true },
-    name: { type: String, required: true },
-    stripe_product_id: { type: String, required: false },
-    stripe_price_id: { type: String, required: false },
-    isActive: { type: Boolean, required: true },
-    description: { type: String, required: true },
-    features: { type: [String], required: true },
+    name: {
+      type: String,
+      required: true,
+    },
+
+    description: {
+      type: String,
+    },
+
+    billingCycleType: {
+      type: String,
+      enum: ["month", "year", "both"],
+      required: true,
+    },
+
+    monthlyAmount: Number,
+    yearlyAmount: Number,
+
+    yearlyDiscountPercentage: Number,
+
+    features: {
+      managerCount: {
+        type: Number,
+        default: 2,
+      },
+      userCount: {
+        type: Number,
+        default: 20,
+      },
+      chat: {
+        type: Boolean,
+        default: false,
+      },
+      meeting: {
+        type: Boolean,
+        default: false,
+      },
+      spaces: {
+        type: Number,
+        default: 0,
+      },
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+
+    stripe_product_id: {
+      type: String,
+    },
+
+    stripe_monthly_price_id: {
+      type: String,
+    },
+
+    stripe_yearly_price_id: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
 
-export const Subscription = model<ISubscription<string>>(
+export const Subscription = mongoose.model<ISubscription>(
   "Subscription",
-  SubscriptionSchema
+  subscriptionSchema
 );

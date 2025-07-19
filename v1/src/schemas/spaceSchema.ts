@@ -45,10 +45,10 @@ const ManagersSchema = new Schema({
   managerId: String,
   managerImage: String,
   managerName: String,
-  status:{
-    type:String,
-    default:"active"
-  }
+  status: {
+    type: String,
+    default: "active",
+  },
 });
 
 const SpaceSchema: Schema<ISpace> = new Schema(

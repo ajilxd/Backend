@@ -92,7 +92,16 @@ export const handleWebhook = async (
 
     case "checkout.session.completed":
       const checkoutSession = event.data.object as Stripe.Checkout.Session;
-      const { subscriptionId, ownerId } = checkoutSession.metadata as any;
+      const {
+        subscriptionId,
+        brandName,
+        monthly,
+        ownerId,
+        billingCycleType,
+        yearly,
+        amount,
+      } = checkoutSession.metadata as any;
+      const isYearly = yearly === "true";
       const { subscription, created } = checkoutSession as any;
       const date = new Date(created * 1000);
       const formattedCreatedDate = date.toLocaleString();
@@ -106,16 +115,17 @@ export const handleWebhook = async (
         throw new AppError("failed to create the subscription", 500);
       }
       const subobj = {
-        ...subscriptionData?.toObject(),
-        isActive: true,
+        ...subscriptionData.toObject(),
+        status: true,
         subscription_id: subscriptionId,
         stripe_subscription_id: subscription,
         created: formattedCreatedDate,
-        features: subscriptionData?.toObject()?.features,
-        expires_at:
-          subscriptionData.billingCycle === "year"
-            ? new Date().setFullYear(new Date().getFullYear() + 1)
-            : new Date().setMonth(new Date().getMonth() + 1),
+        spec: subscriptionData?.toObject()?.features,
+        validity: isYearly ? "year" : "month",
+        amount: +amount,
+        expires_at: isYearly
+          ? new Date().setFullYear(new Date().getFullYear() + 1)
+          : new Date().setMonth(new Date().getMonth() + 1),
         invoice: checkoutSession.invoice,
       };
 
@@ -129,17 +139,18 @@ export const handleWebhook = async (
             customerName: owner.name,
             subscriptionName: subscriptionData.name,
             subscribedDate: new Date(),
-            amount: +subscriptionData.amount,
-            expiryDate:
-              subscriptionData.billingCycle === "year"
-                ? new Date(new Date().setFullYear(new Date().getFullYear() + 1))
-                : new Date(new Date().setMonth(new Date().getMonth() + 1)),
+            amount: +amount,
+            expiryDate: isYearly
+              ? new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+              : new Date(new Date().setMonth(new Date().getMonth() + 1)),
             companyName: owner.company.companyName,
             status: "success",
             transactionType: "initial",
             stripeCustomerId: owner.stripe_customer_id,
             stripeSubsriptionId: owner.subscription?.stripe_subscription_id,
-            billingCycle: subscriptionData.billingCycle,
+            billingCycle: yearly ? "year" : "month",
+            subscriptionId: "" + subscriptionData._id,
+            isInitial: true,
           });
           logger.info("Owner subscription updated successfully!", owner);
           if (transaction) {
@@ -147,10 +158,13 @@ export const handleWebhook = async (
           }
         }
       }
+      console.log(checkoutSession);
       break;
 
     case "invoice.created":
       const invoiceObject = event.data.object as Stripe.Invoice;
+
+      console.log("invoice object data", invoiceObject);
 
       try {
         const subscriptionData = await stripeInstance.subscriptions.retrieve(
@@ -198,6 +212,40 @@ export const handleWebhook = async (
         await OwnerRepository.updationByEmail(customer_email!, {
           invoices: [...ownerData?.invoices!, invoiceObjForOwnerUpdation],
         });
+        const subscriptionDB = await subscriberService.findSubscriptionById(
+          subscriptionData.metadata.subscriptionId
+        );
+        if (
+          invoiceObject.billing_reason === "subscription_create" ||
+          !ownerData ||
+          !subscriptionDB
+        ) {
+          break;
+        }
+
+        const transaction = await TransactionService.create({
+          customerId: "" + ownerId,
+          customerName: ownerData.name,
+          subscriptionName: subscriptionDB.name,
+          subscribedDate: new Date(),
+          amount: +subscriptionData.metadata.amount,
+          expiryDate:
+            subscriptionData.metadata.yearly === "true"
+              ? new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+              : new Date(new Date().setMonth(new Date().getMonth() + 1)),
+          companyName: ownerData.company.companyName,
+          status: "success",
+          transactionType: "initial",
+          stripeCustomerId: ownerData.stripe_customer_id,
+          stripeSubsriptionId: ownerData.subscription?.stripe_subscription_id,
+          billingCycle:
+            subscriptionData.metadata.yearly === "true" ? "year" : "month",
+          subscriptionId: "" + subscriptionDB._id,
+          isInitial: false,
+        });
+        if (transaction) {
+          logger.info("Transaction has been recorded succesfully");
+        }
       } catch (error) {
         console.error("Error handling invoice.created event:", error);
       }
@@ -234,14 +282,17 @@ export const handleWebhook = async (
               subscriptionName: subscriptionData.name,
               subscribedDate: subscribedDate || null,
               expiryDate: expiryDate || null,
-              amount: +subscriptionData.amount,
+              amount: +subscription.metadata.amount,
               companyName: ownerData.company.companyName,
               transactionType: type,
               errorMessage: paymentIntentData.last_payment_error?.message,
               stripeCustomerId: ownerData.stripe_customer_id,
               stripeSubsriptionId:
                 ownerData.subscription?.stripe_subscription_id,
-              billingCycle: subscriptionData.billingCycle,
+              billingCycle:
+                subscription.metadata.yearly === "true" ? "year" : "month",
+              subscriptionId: "" + subscriptionData._id,
+              isInitial: true,
             });
           }
         }
@@ -273,11 +324,14 @@ export const handleWebhook = async (
             subscriptionName: subscriptionData.name,
             subscribedDate: ownerData.subscription?.created || null,
             expiryDate: ownerData.subscription?.expires_at || null,
-            amount: +subscriptionData.amount,
+            amount: +subscription.metadata.amount,
             companyName: ownerData.company.companyName,
             transactionType: "recurring",
             errorMessage: "failed to pay the recurring bill",
-            billingCycle: subscriptionData.billingCycle,
+            billingCycle:
+              subscription.metadata.yearly === "true" ? "year" : "month",
+            subscriptionId: "" + subscriptionData._id,
+            isInitial: false,
           });
         }
       }

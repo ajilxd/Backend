@@ -4,17 +4,13 @@ import AppError from "../../errors/appError";
 import { ISubscriptionService } from "../interface/ISubscriptionService";
 import subscriptionRepository from "../../repositories/implementations/SubscriptionRepository";
 
-class SubscriptionService
-  implements ISubscriptionService<ISubscription<string>>
-{
+class SubscriptionService implements ISubscriptionService {
   private subscriptionRepository: ISubscriptionRepository;
   constructor(subscriptionRepository: ISubscriptionRepository) {
     this.subscriptionRepository = subscriptionRepository;
   }
 
-  async createSubcription(
-    data: ISubscription<string>
-  ): Promise<ISubscription<string>> {
+  async createSubscription(data: ISubscription): Promise<ISubscription> {
     const existingSubscription = await this.subscriptionRepository.findOne({
       name: data.name,
     });
@@ -28,7 +24,7 @@ class SubscriptionService
     return result;
   }
 
-  async fetchSubscriptions(): Promise<ISubscription<string>[]> {
+  async fetchSubscriptions(): Promise<ISubscription[]> {
     const result = await this.subscriptionRepository.findAll();
 
     return result;
@@ -36,8 +32,8 @@ class SubscriptionService
 
   async updateSubscription(
     id: string,
-    data: ISubscription<string>
-  ): Promise<ISubscription<string>> {
+    data: ISubscription
+  ): Promise<ISubscription> {
     const existingSubscription = await this.subscriptionRepository.findOne({
       _id: id,
     });
@@ -52,8 +48,7 @@ class SubscriptionService
     }
   }
 
-  async findSubscriptionById(id: string): Promise<ISubscription<string>> {
-
+  async findSubscriptionById(id: string): Promise<ISubscription> {
     if (!id) {
       throw new AppError("Id required for fetching subscription", 400, "warn");
     }

@@ -1,13 +1,24 @@
 import { ObjectId, Document } from "mongoose";
 
-export interface ISubscription<T> extends Document {
+export type Features = {
+  managerCount: number;
+  userCount: number;
+  chat: boolean;
+  meeting: boolean;
+  spaces: number;
+};
+
+export interface ISubscription extends Document {
   _id: ObjectId;
-  billingCycle: T;
-  amount: T;
-  name: T;
-  stripe_product_id?: T;
-  stripe_price_id?: T;
+  name: string;
+  billingCycleType: string;
   isActive: boolean;
-  description: T;
-  features: Array<T>;
+  yearlyAmount: number;
+  monthlyAmount: number;
+  stripe_product_id?: string;
+  description: string;
+  stripe_monthly_price_id?: string;
+  stripe_yearly_price_id?: string;
+  yearlyDiscountPercentage?: number;
+  features: Features;
 }

@@ -13,4 +13,6 @@ export interface ITransaction {
   createdAt?: string;
   errorMessage?: string;
   billingCycle?: string;
+  subscriptionId: string;
+  isInitial: boolean;
 }

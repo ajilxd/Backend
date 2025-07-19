@@ -42,4 +42,10 @@ export interface IAdminController {
     res: Response,
     next: NextFunction
   ) => Promise<void> | void;
+
+  fetchAllSubscriptions: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 }

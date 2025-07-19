@@ -5,10 +5,10 @@ import { BaseRepository } from "./BaseRepository";
 import { Model } from "mongoose";
 
 class SubscriptionRepository
-  extends BaseRepository<ISubscription<string>>
+  extends BaseRepository<ISubscription>
   implements ISubscriptionRepository
 {
-  constructor(model: Model<ISubscription<string>>) {
+  constructor(model: Model<ISubscription>) {
     super(model);
   }
 }

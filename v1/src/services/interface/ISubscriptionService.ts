@@ -1,9 +1,13 @@
-export interface ISubscriptionService<T> {
-  createSubcription(subascriptionData: T): Promise<T>;
-  fetchSubscriptions(): Promise<T[]>;
+import { ISubscription } from "../../entities/ISubscription";
+
+export interface ISubscriptionService {
+  createSubscription(
+    subascriptionData: Partial<ISubscription>
+  ): Promise<ISubscription>;
+  fetchSubscriptions(): Promise<ISubscription[]>;
   updateSubscription(
     subscriptionId: string,
-    subscriptionData: Partial<T>
-  ): Promise<T>;
-  findSubscriptionById(id: string): Promise<T>;
+    subscriptionData: Partial<ISubscription>
+  ): Promise<ISubscription>;
+  findSubscriptionById(id: string): Promise<ISubscription>;
 }

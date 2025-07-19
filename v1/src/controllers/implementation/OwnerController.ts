@@ -19,20 +19,19 @@ import { logger } from "../../utils/logger";
 import { IOwner } from "../../entities/IOwner";
 import { IUserService } from "../../services/interface/IUserService";
 import UserService from "../../services/implementation/UserService";
-import { features } from "process";
 
 class OwnerController implements IOwnerController {
   private OwnerService: IOwnerService;
   private TokenService: ITokenService;
   private ManagerService: IManagerService;
-  private SubscriptionService: ISubscriptionService<ISubscription<string>>;
+  private SubscriptionService: ISubscriptionService;
   private UserService: IUserService;
 
   constructor(
     OwnerService: IOwnerService,
     TokenService: ITokenService,
     ManagerService: IManagerService,
-    SubscriptionService: ISubscriptionService<ISubscription<string>>,
+    SubscriptionService: ISubscriptionService,
     UserService: IUserService
   ) {
     this.OwnerService = OwnerService;

@@ -2,7 +2,6 @@ import { IPaymentController } from "../interface/IPaymentController";
 import { Request, Response, NextFunction } from "express";
 import { stripeInstance } from "../..";
 import { sendResponse } from "../../utils/sendResponse";
-import { logger } from "../../utils/logger";
 import AppError from "../../errors/appError";
 import { catchAsync } from "../../errors/catchAsyc";
 
@@ -13,7 +12,23 @@ class PaymentController implements IPaymentController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const { planId, stripeCustomerId, subscriptionId, ownerId } = req.body;
+      const {
+        planId,
+        stripeCustomerId,
+        subscriptionId,
+        ownerId,
+        billingCycleType,
+        amount,
+        yearly,
+        monthly,
+      } = req.body;
+      console.log(
+        "req body at payment",
+        billingCycleType,
+        amount,
+        yearly,
+        monthly
+      );
 
       if (!planId) {
         return sendResponse(res, 400, "Plan ID is required");
@@ -53,12 +68,20 @@ class PaymentController implements IPaymentController {
           brandName,
           subscriptionId,
           ownerId,
+          billingCycleType,
+          yearly,
+          monthly,
+          amount,
         },
         subscription_data: {
           metadata: {
             brandName,
             subscriptionId,
             ownerId,
+            billingCycleType,
+            yearly,
+            monthly,
+            amount,
           },
         },
       });

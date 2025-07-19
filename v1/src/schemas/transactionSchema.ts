@@ -47,9 +47,18 @@ const transactionSchema: Schema<ITransaction> = new mongoose.Schema(
       default: "initial",
       type: String,
     },
+    subscriptionId: {
+      type: String,
+      required: true,
+    },
+    isInitial: {
+      type: Boolean,
+      required: true,
+    },
     errorMessage: String,
     billingCycle: String,
   },
+
   {
     timestamps: true,
   }
