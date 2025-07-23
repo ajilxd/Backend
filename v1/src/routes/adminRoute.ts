@@ -3,7 +3,6 @@ import AdminController from "../controllers/implementation/AdminController";
 import SubscriptionController from "../controllers/implementation/SubscriptionController";
 import { requestValidator } from "../middleware/requestValidator";
 import { AdminLoginDto } from "../dtos/admin/admin.dto";
-import { CreateSubscriptionDto } from "../dtos/subscription/subscription.dto";
 
 export const adminRouter = Router();
 
@@ -13,7 +12,10 @@ adminRouter.post(
   AdminController.loginAdmin
 );
 adminRouter.post("/subscription", SubscriptionController.AddSubscription);
+
 adminRouter.get("/subscriptions", AdminController.fetchAllSubscriptions);
+
+adminRouter.put("/subscription/:id", SubscriptionController.updateSubscription);
 
 adminRouter.patch(
   "/toggle-subscription-status/:id",

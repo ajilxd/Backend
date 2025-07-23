@@ -33,6 +33,8 @@ export interface IOwner extends Document {
     amount?: string;
     expires_at?: Date;
     invoice?: string;
+    points?: string;
+    upgrade?: boolean;
   };
   createdAt: Date;
 

@@ -9,7 +9,7 @@ paymentRouter.post(
   PaymentController.checkoutSessionHandler
 );
 
-paymentRouter.delete(
+paymentRouter.post(
   "/cancel-subscription/:id",
   PaymentController.cancelSubscriptionHandler
 );

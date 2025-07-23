@@ -4,14 +4,24 @@ import { stripeInstance } from "../..";
 import { sendResponse } from "../../utils/sendResponse";
 import AppError from "../../errors/appError";
 import { catchAsync } from "../../errors/catchAsyc";
+import { equal } from "joi";
+import { ITransactionService } from "../../services/interface/ITransactionService";
+import TransactionService from "../../services/implementation/TransactionService";
+import { IOwnerService } from "../../services/interface/IOwnerService";
+import OwnerService from "../../services/implementation/OwnerService";
 
 class PaymentController implements IPaymentController {
+  constructor(
+    private TransactionService: ITransactionService,
+    private OwnerService: IOwnerService
+  ) {}
   async checkoutSessionHandler(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
+      console.log("req body at payment controller", req.body);
       const {
         planId,
         stripeCustomerId,
@@ -21,15 +31,21 @@ class PaymentController implements IPaymentController {
         amount,
         yearly,
         monthly,
+        points,
+        upgrade,
       } = req.body;
       console.log(
         "req body at payment",
         billingCycleType,
         amount,
         yearly,
-        monthly
+        monthly,
+        points,
+        upgrade
       );
-
+      if (!points) {
+        return sendResponse(res, 400, "points is missing");
+      }
       if (!planId) {
         return sendResponse(res, 400, "Plan ID is required");
       }
@@ -72,6 +88,8 @@ class PaymentController implements IPaymentController {
           yearly,
           monthly,
           amount,
+          points,
+          upgrade,
         },
         subscription_data: {
           metadata: {
@@ -82,6 +100,8 @@ class PaymentController implements IPaymentController {
             yearly,
             monthly,
             amount,
+            points,
+            upgrade,
           },
         },
       });
@@ -108,15 +128,45 @@ class PaymentController implements IPaymentController {
   cancelSubscriptionHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { id } = req.params;
+      const { ownerId } = req.body;
+      if (!ownerId) {
+        throw new AppError("Owner Id is required", 400, "warn");
+      }
       if (!id) {
-        throw new AppError("subscripton id is required for cancellation", 500);
+        throw new AppError(
+          "subscripton id is required for cancellation",
+          400,
+          "warn"
+        );
+      }
+
+      const ownerData = await this.OwnerService.fetchOwnerById(ownerId);
+
+      if (
+        !ownerData?.subscription ||
+        !ownerData?.subscription?.subscription_id
+      ) {
+        throw new AppError("User doesnt have subscription", 404, "warn");
       }
 
       await stripeInstance.subscriptions.cancel("" + id);
+      await this.TransactionService.create({
+        subscriptionId: ownerData?.subscription?.subscription_id,
+        subscriptionName: ownerData.subscription.name!,
+        customerId: ownerId,
+        customerName: ownerData.name,
+        expiryDate: ownerData.subscription.expires_at,
+        amount: +ownerData.subscription.amount!,
+        companyName: ownerData.company.companyName,
+        billingCycle: ownerData.subscription.billingCycle!,
+        isCancled: true,
+        transactionType: "cancel",
+        status: "cancel",
+      });
 
       sendResponse(res, 200, "subscripton cancelled  " + id);
     }
   );
 }
 
-export default new PaymentController();
+export default new PaymentController(TransactionService, OwnerService);

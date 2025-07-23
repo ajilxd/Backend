@@ -416,12 +416,14 @@ class OwnerController implements IOwnerController {
       const result = {
         ...subscription,
         status: stripeSubscriptionData.status,
-        cancel_at_period_end: stripeSubscriptionData.cancel_at_period_end,
-        cancel_at: stripeSubscriptionData.cancel_at,
-        canceled_at: stripeSubscriptionData.canceled_at,
+        cancel_at_period_end: new Date(
+          stripeSubscriptionData.current_period_end * 1000
+        ),
+        cancel_at: new Date(stripeSubscriptionData.cancel_at! * 1000),
+        canceled_at: new Date(stripeSubscriptionData.canceled_at! * 1000),
         features: subscriptionData.features,
       };
-
+      console.log("result form owner sub", result);
       return sendResponse(
         res,
         200,

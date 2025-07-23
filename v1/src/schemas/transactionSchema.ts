@@ -53,10 +53,10 @@ const transactionSchema: Schema<ITransaction> = new mongoose.Schema(
     },
     isInitial: {
       type: Boolean,
-      required: true,
     },
     errorMessage: String,
     billingCycle: String,
+    upgrade: Boolean,
   },
 
   {

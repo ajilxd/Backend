@@ -100,13 +100,15 @@ export const handleWebhook = async (
         billingCycleType,
         yearly,
         amount,
+        points,
+        upgrade,
       } = checkoutSession.metadata as any;
       const isYearly = yearly === "true";
       const { subscription, created } = checkoutSession as any;
       const date = new Date(created * 1000);
       const formattedCreatedDate = date.toLocaleString();
-      // console.log("Checkout session completed!", checkoutSession);
-      // console.log("metadat from checkout session", checkoutSession.metadata);
+      console.log("Checkout session completed!", checkoutSession);
+      console.log("metadat from checkout session", checkoutSession.metadata);
       const subscriptionData = await subscriberService.findSubscriptionById(
         subscriptionId
       );
@@ -127,6 +129,8 @@ export const handleWebhook = async (
           ? new Date().setFullYear(new Date().getFullYear() + 1)
           : new Date().setMonth(new Date().getMonth() + 1),
         invoice: checkoutSession.invoice,
+        points,
+        upgrade: upgrade === "true" ? true : false,
       };
 
       if (subscriptionData) {
@@ -151,6 +155,7 @@ export const handleWebhook = async (
             billingCycle: yearly ? "year" : "month",
             subscriptionId: "" + subscriptionData._id,
             isInitial: true,
+            upgrade: upgrade === "true" ? true : false,
           });
           logger.info("Owner subscription updated successfully!", owner);
           if (transaction) {
@@ -171,10 +176,6 @@ export const handleWebhook = async (
           invoiceObject.subscription as string
         );
 
-        const customerDetails = await stripeInstance.customers.retrieve(
-          subscriptionData.customer as string
-        );
-
         const price = subscriptionData.items.data[0].price;
         const productId = price.product as string;
 
@@ -183,6 +184,9 @@ export const handleWebhook = async (
         );
         const { name } = productDetails;
 
+        const subscriptionDB = await subscriberService.findSubscriptionById(
+          subscriptionData.metadata.subscriptionId
+        );
         const {
           total,
           currency,
@@ -212,9 +216,6 @@ export const handleWebhook = async (
         await OwnerRepository.updationByEmail(customer_email!, {
           invoices: [...ownerData?.invoices!, invoiceObjForOwnerUpdation],
         });
-        const subscriptionDB = await subscriberService.findSubscriptionById(
-          subscriptionData.metadata.subscriptionId
-        );
         if (
           invoiceObject.billing_reason === "subscription_create" ||
           !ownerData ||
@@ -242,6 +243,7 @@ export const handleWebhook = async (
             subscriptionData.metadata.yearly === "true" ? "year" : "month",
           subscriptionId: "" + subscriptionDB._id,
           isInitial: false,
+          upgrade: false,
         });
         if (transaction) {
           logger.info("Transaction has been recorded succesfully");
@@ -293,6 +295,7 @@ export const handleWebhook = async (
                 subscription.metadata.yearly === "true" ? "year" : "month",
               subscriptionId: "" + subscriptionData._id,
               isInitial: true,
+              upgrade: false,
             });
           }
         }
@@ -332,6 +335,7 @@ export const handleWebhook = async (
               subscription.metadata.yearly === "true" ? "year" : "month",
             subscriptionId: "" + subscriptionData._id,
             isInitial: false,
+            upgrade: false,
           });
         }
       }

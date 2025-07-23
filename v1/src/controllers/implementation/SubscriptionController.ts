@@ -158,6 +158,9 @@ class SubscriptionController implements ISubscriptionController {
 
       subscription.features = features;
       subscription.stripe_product_id = stripe_product_id;
+      subscription.points =
+        subscription.monthlyAmount ||
+        Math.ceil(subscription.yearlyAmount! && subscription.yearlyAmount / 12);
 
       const result = await this.SubscriptionService.createSubscription(
         subscription
@@ -198,6 +201,28 @@ class SubscriptionController implements ISubscriptionController {
         res,
         200,
         `updation on subscription went succesful for ${req.params.id}`,
+        updated
+      );
+    }
+  );
+
+  updateSubscription = catchAsync(
+    async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+      const subId = req.params.id;
+      const existingSubscription =
+        await this.SubscriptionService.findSubscriptionById(subId);
+      if (!existingSubscription) {
+        throw new AppError("No subscription found", 404, "warn");
+      }
+      const data = req.body;
+      const updated = await this.SubscriptionService.updateSubscription(
+        subId,
+        data
+      );
+      return sendResponse(
+        res,
+        200,
+        `updation on subscription wnet succesful for ${req.params.id}`,
         updated
       );
     }

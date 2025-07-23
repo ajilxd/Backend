@@ -21,4 +21,5 @@ export interface ISubscription extends Document {
   stripe_yearly_price_id?: string;
   yearlyDiscountPercentage?: number;
   features: Features;
+  points: number;
 }

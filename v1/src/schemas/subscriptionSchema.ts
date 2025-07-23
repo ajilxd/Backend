@@ -62,6 +62,9 @@ const subscriptionSchema = new mongoose.Schema(
     stripe_yearly_price_id: {
       type: String,
     },
+    points: {
+      type: Number,
+    },
   },
   { timestamps: true }
 );

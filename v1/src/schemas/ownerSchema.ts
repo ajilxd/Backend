@@ -14,9 +14,9 @@ const OwnerSchema: Schema<IOwner> = new Schema(
     stripe_customer_id: { type: String, required: false },
     refreshToken: { type: String, required: false },
     image: { type: String, required: false },
-    company:{
-      companyName:String,
-      companyId:String
+    company: {
+      companyName: String,
+      companyId: String,
     },
     role: {
       type: String,
@@ -25,19 +25,21 @@ const OwnerSchema: Schema<IOwner> = new Schema(
     },
     subscription: {
       type: {
-        name: { type: String, required: false },
-        status: { type: String, required: false },
-        validity: { type: String, required: false },
-        stripe_subscription_id: { type: String, required: false },
-        subscription_id: { type: String, required: false },
-        next_invoice: { type: Date, required: false },
-        cancel_at: { type: Date, required: false },
-        canceled_at: { type: Date, required: false },
-        created: { type: Date, required: false },
-        spec: { type: Object, required: false },
-        amount: { type: String, required: false },
-        expires_at: { type: Date, required: false },
-        invoice: { type: String, required: false },
+        name: String,
+        status: String,
+        validity: String,
+        stripe_subscription_id: String,
+        subscription_id: String,
+        next_invoice: Date,
+        cancel_at: Date,
+        canceled_at: Date,
+        created: Date,
+        spec: Object,
+        amount: String,
+        expires_at: Date,
+        invoice: String,
+        points: String,
+        upgrade: Boolean,
       },
     },
     invoices: {
