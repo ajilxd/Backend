@@ -1,5 +1,4 @@
 import { ISpace, TeamMember } from "../../entities/ISpace";
-import { ObjectId } from "mongoose";
 
 import { SpaceQueryType, updateSpaceByQueryType } from "../../types";
 

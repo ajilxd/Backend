@@ -13,13 +13,34 @@ import ManagerService from "../../services/implementation/ManagerService";
 import UserService from "../../services/implementation/UserService";
 import { AccountType } from "../../types";
 import AppError from "../../errors/appError";
-import { IManager } from "../../entities/IManager";
 import { ITransactionService } from "../../services/interface/ITransactionService";
 import TransactionService from "../../services/implementation/TransactionService";
 import { ITransaction } from "../../entities/ITransaction";
 import { ISubscription } from "../../entities/ISubscription";
 import { ISubscriptionService } from "../../services/interface/ISubscriptionService";
 import SubscriptionService from "../../services/implementation/SubscriptionService";
+import { ISubscriberService } from "../../services/interface/ISubscriberService";
+import SubscriberService from "../../services/implementation/SubscriberService";
+import { Transaction } from "../../schemas/transactionSchema";
+type MonthName =
+  | "Jan"
+  | "Feb"
+  | "Mar"
+  | "Apr"
+  | "May"
+  | "Jun"
+  | "Jul"
+  | "Aug"
+  | "Sep"
+  | "Oct"
+  | "Nov"
+  | "Dec";
+
+type MonthData = {
+  sales: number;
+  revenue: number;
+  newCustomers: number;
+};
 
 interface userCount {
   userCount?: number;
@@ -28,27 +49,15 @@ interface userCount {
 type SubscriptionAdminType = ISubscription & userCount;
 
 class AdminController implements IAdminController {
-  private AdminService: IAdminService;
-  private OwnerService: IOwnerService;
-  private ManagerService: IManagerService;
-  private UserService: IUserService;
-  private TransactionService: ITransactionService;
-  private SubscripitonService: ISubscriptionService;
   constructor(
-    AdminService: IAdminService,
-    OwnerService: IOwnerService,
-    ManagerService: IManagerService,
-    UserService: IUserService,
-    TransactionService: ITransactionService,
-    SubscriptionService: ISubscriptionService
-  ) {
-    this.AdminService = AdminService;
-    this.OwnerService = OwnerService;
-    this.ManagerService = ManagerService;
-    this.UserService = UserService;
-    this.TransactionService = TransactionService;
-    this.SubscripitonService = SubscriptionService;
-  }
+    private AdminService: IAdminService,
+    private OwnerService: IOwnerService,
+    private ManagerService: IManagerService,
+    private UserService: IUserService,
+    private TransactionService: ITransactionService,
+    private SubscriptionService: ISubscriptionService,
+    private SubscriberService: ISubscriberService
+  ) {}
 
   loginAdmin = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -251,7 +260,7 @@ class AdminController implements IAdminController {
       const transactions = await this.TransactionService.fetchAll();
 
       let subscriptions: SubscriptionAdminType[] =
-        await this.SubscripitonService.fetchSubscriptions();
+        await this.SubscriptionService.fetchSubscriptions();
 
       const subIds = subscriptions.map((i) => "" + i._id);
 
@@ -296,12 +305,163 @@ class AdminController implements IAdminController {
       const totalPage = Math.ceil(subscriptions.length / itemPerPage);
       const skip = (page - 1) * itemPerPage;
       const paginatedData = subscriptions.slice(skip, skip + itemPerPage);
-      console.log("data after pagination", paginatedData);
 
       sendResponse(res, 200, "Successfully fetched subscriptions", {
         subscriptions: paginatedData,
         totalPage,
       });
+    }
+  );
+
+  fetchAllSubscribers = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const search = (req.query.search as string)?.trim().toLowerCase();
+      const status = (req.query.status as string)?.trim().toLowerCase();
+      const page = +(req.query.page as string) || 1;
+      const itemPerPage = +(req.query.itemPerPage as string) || 10;
+      let subscribers = await this.SubscriberService.fetchAll();
+
+      if (status && status !== "") {
+        subscribers = subscribers.filter((i) => {
+          return i.status === status;
+        });
+      }
+      if (search && search !== "") {
+        subscribers = subscribers.filter((i) => {
+          return (
+            i.name.toLowerCase().includes(search) ||
+            i.customerName.toLocaleLowerCase().includes(search)
+          );
+        });
+      }
+
+      const totalPage = Math.ceil(subscribers.length / itemPerPage);
+      const skip = (page - 1) * itemPerPage;
+      const paginatedData = subscribers.slice(skip, skip + itemPerPage);
+      sendResponse(res, 200, "succesfully fetched all users subscription", {
+        subscribers: paginatedData,
+        totalPage,
+      });
+    }
+  );
+
+  fetchSalesReport = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const failedPaymentsCount = (
+        await this.TransactionService.fetchAll()
+      ).filter((i) => i.status === "fail").length;
+      const upgradeCount = (await this.TransactionService.fetchAll()).filter(
+        (i) => !!i.upgrade === true
+      ).length;
+      const totalRevenue = (await this.TransactionService.fetchAll())
+        .filter((i) => i.status === "success")
+        .reduce((sum, item) => sum + Number(item.amount), 0);
+      const activeCustomersCount = (
+        await this.TransactionService.fetchAll()
+      ).filter(
+        (i) => i.isInitial && !i.upgrade && i.status === "success"
+      ).length;
+      const lostCustomersCount = (
+        await this.TransactionService.fetchAll()
+      ).filter((i) => !!i.isCancled === true).length;
+
+      const owners = await this.OwnerService.getOwners();
+      const churnRate = Math.ceil((lostCustomersCount / owners.length) * 100);
+      const subscriptionSalesData = await Transaction.aggregate([
+        {
+          $match: { status: "success" },
+        },
+        {
+          $group: {
+            _id: "$subscriptionName",
+            count: { $sum: 1 },
+          },
+        },
+      ]);
+
+      const startOfYear = new Date(`${2025}-01-01T00:00:00Z`);
+      const endOfYear = new Date(`${2025}-12-31T23:59:59Z`);
+
+      // Aggregate Transactions: Sales + New Customers
+      const transactions = await Transaction.aggregate([
+        {
+          $match: {
+            status: "success",
+            createdAt: { $gte: startOfYear, $lte: endOfYear },
+          },
+        },
+        {
+          $group: {
+            _id: { month: { $month: "$createdAt" } },
+            revenue: { $sum: "$amount" },
+            sales: { $count: {} },
+            uniqueCustomers: { $addToSet: "$customerId" },
+          },
+        },
+        {
+          $project: {
+            month: "$_id.month",
+            sales: 1,
+            revenue: 1,
+            newCustomers: { $size: "$uniqueCustomers" },
+          },
+        },
+        { $sort: { month: 1 } },
+      ]);
+
+      const monthsData: Record<MonthName, MonthData> = {
+        Jan: { sales: 0, revenue: 0, newCustomers: 0 },
+        Feb: { sales: 0, revenue: 0, newCustomers: 0 },
+        Mar: { sales: 0, revenue: 0, newCustomers: 0 },
+        Apr: { sales: 0, revenue: 0, newCustomers: 0 },
+        May: { sales: 0, revenue: 0, newCustomers: 0 },
+        Jun: { sales: 0, revenue: 0, newCustomers: 0 },
+        Jul: { sales: 0, revenue: 0, newCustomers: 0 },
+        Aug: { sales: 0, revenue: 0, newCustomers: 0 },
+        Sep: { sales: 0, revenue: 0, newCustomers: 0 },
+        Oct: { sales: 0, revenue: 0, newCustomers: 0 },
+        Nov: { sales: 0, revenue: 0, newCustomers: 0 },
+        Dec: { sales: 0, revenue: 0, newCustomers: 0 },
+      };
+
+      transactions.forEach((m) => {
+        const monthNames = [
+          "",
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        const monthName = monthNames[m.month] as MonthName;
+        monthsData[monthName].sales = m.sales;
+        monthsData[monthName].revenue = m.revenue;
+        monthsData[monthName].newCustomers = m.newCustomers;
+      });
+
+      const yearlyReport = Object.entries(monthsData).map(([month, data]) => ({
+        month,
+        ...data,
+      }));
+
+      const payload = {
+        yearlyReport,
+        churnRate,
+        lostCustomersCount,
+        activeCustomersCount,
+        totalRevenue,
+        upgradeCount,
+        failedPaymentsCount,
+        subscriptionSalesData,
+      };
+      sendResponse(res, 200, "data fetched succesfully", payload);
     }
   );
 }
@@ -312,5 +472,6 @@ export default new AdminController(
   ManagerService,
   UserService,
   TransactionService,
-  SubscriptionService
+  SubscriptionService,
+  SubscriberService
 );

@@ -35,3 +35,7 @@ adminRouter.get("/users", AdminController.fetchAllusersHandler);
 adminRouter.patch("/users", AdminController.BlockUser);
 
 adminRouter.get("/transactions", AdminController.fetchAllTransactions);
+
+adminRouter.get("/subscribers", AdminController.fetchAllSubscribers);
+
+adminRouter.get("/sales-report", AdminController.fetchSalesReport);

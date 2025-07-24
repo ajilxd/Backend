@@ -13,6 +13,7 @@ import AppError from "../errors/appError";
 import OwnerRepository from "../repositories/implementations/OwnerRepository";
 import TransactionService from "../services/implementation/TransactionService";
 import OwnerService from "../services/implementation/OwnerService";
+import SubscriberService from "../services/implementation/SubscriberService";
 const endpointSecret = config.STRIPE_WEBHOOK_SECRET_KEY;
 
 export const handleWebhook = async (
@@ -122,7 +123,7 @@ export const handleWebhook = async (
         subscription_id: subscriptionId,
         stripe_subscription_id: subscription,
         created: formattedCreatedDate,
-        spec: subscriptionData?.toObject()?.features,
+        spec: subscriptionData.toObject().features,
         validity: isYearly ? "year" : "month",
         amount: +amount,
         expires_at: isYearly
@@ -133,7 +134,33 @@ export const handleWebhook = async (
         upgrade: upgrade === "true" ? true : false,
       };
 
-      if (subscriptionData) {
+      const ownerDb = await ownerService.fetchOwnerById(ownerId);
+
+      //deactivating the previous subs
+
+      if (upgrade === "true") {
+        const prevSubscription = await SubscriberService.findByCustomerId(
+          ownerId
+        );
+        if (!prevSubscription) return;
+        await SubscriberService.update(ownerId, { status: "inactive" });
+      }
+
+      if (subscriptionData && ownerDb) {
+        await SubscriberService.createSubscriber({
+          customerId: ownerId,
+          customerName: ownerDb.name,
+          name: subscriptionData.name,
+          status: "active",
+          subscriptionId: subscriptionId,
+          features: subscriptionData.toObject().features,
+          billingCycle: isYearly ? "year" : "month",
+          amount: +amount,
+          expiresAt: isYearly
+            ? new Date().setFullYear(new Date().getFullYear() + 1)
+            : (new Date().setMonth(new Date().getMonth() + 1) as any),
+          points,
+        });
         const owner = await ownerService.updateOwner(ownerId, {
           subscription: subobj,
         });
