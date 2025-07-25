@@ -215,6 +215,8 @@ class SubscriptionController implements ISubscriptionController {
         throw new AppError("No subscription found", 404, "warn");
       }
       const data = req.body;
+      console.log("req body at update subscripiton", data);
+
       const updated = await this.SubscriptionService.updateSubscription(
         subId,
         data

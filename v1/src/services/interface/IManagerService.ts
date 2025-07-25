@@ -4,7 +4,7 @@ import { ManagerQueryType } from "../../repositories/implementations/ManagerRepo
 export interface IManagerService {
   createManager(managerData: Partial<IManager>): Promise<IManager>;
   findManagerByEmail(email: string): Promise<IManager>;
-  getManagers(id: string): Promise<IManager[]>;
+  getManagers(ownerid: string): Promise<IManager[]>;
   updateManager(
     managerId: string,
     managerData: Partial<IManager>

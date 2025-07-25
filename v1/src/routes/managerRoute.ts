@@ -64,3 +64,5 @@ managerRouter.get(
   "/events/:managerId",
   managerController.getCalendarEventsHandler
 );
+
+managerRouter.get("/dashboard", managerController.fetchDashboardHandler);

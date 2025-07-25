@@ -85,3 +85,5 @@ ownerRouter.post(
   authMiddleware(["owner"]),
   CompanyController.registerCompanyHandler
 );
+
+ownerRouter.get("/dashboard", OwnerController.fetchDashboardHandler);

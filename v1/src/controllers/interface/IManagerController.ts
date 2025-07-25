@@ -54,4 +54,10 @@ export interface IManagerController {
     res: Response,
     next: NextFunction
   ) => Promise<void> | void;
+
+  fetchDashboardHandler: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 }

@@ -20,4 +20,5 @@ export interface ISubscriber extends Document {
     spaces: number;
   };
   points: number;
+  company: string;
 }

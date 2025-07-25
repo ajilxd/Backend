@@ -41,4 +41,10 @@ export interface IUserController {
     res: Response,
     next: NextFunction
   ) => Promise<void> | void;
+
+  fetchDashboardHandler: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 }

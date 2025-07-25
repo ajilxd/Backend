@@ -1,6 +1,5 @@
 import { Model } from "mongoose";
 import { IManager } from "../../entities/IManager";
-import AppError from "../../errors/appError";
 import { IManagerRepository } from "../../repositories/interface/IManagerRepository";
 import { Manager } from "../../schemas/managerSchema";
 import { BaseRepository } from "./BaseRepository";
@@ -8,6 +7,7 @@ import { BaseRepository } from "./BaseRepository";
 export type ManagerQueryType = {
   spaces?: string;
   _id?: string;
+  ownerId?: string;
 };
 
 class ManagerRepository
@@ -24,9 +24,6 @@ class ManagerRepository
 
   async getManagersByQuery(query: ManagerQueryType): Promise<IManager[]> {
     const result = await this.model.find(query);
-    if (!result.length) {
-      throw new AppError("No users found", 404);
-    }
     return result;
   }
 

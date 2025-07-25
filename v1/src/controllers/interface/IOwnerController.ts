@@ -84,4 +84,10 @@ export interface IOwnerController {
     res: Response,
     next: NextFunction
   ) => Promise<void> | void;
+
+  fetchDashboardHandler: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 }

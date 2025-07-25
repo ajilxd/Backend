@@ -3,11 +3,12 @@ import { IUser } from "../../entities/IUser";
 import { User } from "../../schemas/userSchema";
 import { BaseRepository } from "./BaseRepository";
 import AppError from "../../errors/appError";
-import { Model, Types } from "mongoose";
+import { Model, ObjectId, Types } from "mongoose";
 
 export type UserQueryType = {
   spaces?: string;
   _id?: string;
+  ownerId?: ObjectId | string;
 };
 
 class UserRepository extends BaseRepository<IUser> implements IUserRepository {
@@ -21,9 +22,6 @@ class UserRepository extends BaseRepository<IUser> implements IUserRepository {
 
   async getUsersByQuery(query: UserQueryType): Promise<IUser[]> {
     const result = await this.model.find(query);
-    if (!result.length) {
-      throw new AppError("No users found", 404);
-    }
     return result;
   }
 

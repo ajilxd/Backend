@@ -48,6 +48,7 @@ const subscriberSchema: Schema<ISubscriber> = new mongoose.Schema(
     customerId: String,
     points: Number,
     status: String,
+    company: String,
   },
   {
     timestamps: true,

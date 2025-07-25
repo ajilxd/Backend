@@ -26,11 +26,6 @@ export class TaskRepository
 
   async getTaskByQuery(query: TaskQueryType): Promise<ITask[]> {
     const result = await Task.find(query);
-    console.log(result);
-    console.log(query);
-    if (!result.length) {
-      throw new AppError("No task found", 404);
-    }
     return result;
   }
 

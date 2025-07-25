@@ -142,8 +142,9 @@ export const handleWebhook = async (
         const prevSubscription = await SubscriberService.findByCustomerId(
           ownerId
         );
-        if (!prevSubscription) return;
-        await SubscriberService.update(ownerId, { status: "inactive" });
+        if (prevSubscription) {
+          await SubscriberService.deactivateSubscriber(ownerId);
+        }
       }
 
       if (subscriptionData && ownerDb) {
@@ -160,6 +161,7 @@ export const handleWebhook = async (
             ? new Date().setFullYear(new Date().getFullYear() + 1)
             : (new Date().setMonth(new Date().getMonth() + 1) as any),
           points,
+          company: ownerDb.company.companyName,
         });
         const owner = await ownerService.updateOwner(ownerId, {
           subscription: subobj,

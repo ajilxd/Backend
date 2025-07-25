@@ -60,4 +60,10 @@ export interface IAdminController {
     res: Response,
     next: NextFunction
   ) => Promise<void> | void;
+
+  fetchDashboard: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<void> | void;
 }

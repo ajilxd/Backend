@@ -39,3 +39,5 @@ adminRouter.get("/transactions", AdminController.fetchAllTransactions);
 adminRouter.get("/subscribers", AdminController.fetchAllSubscribers);
 
 adminRouter.get("/sales-report", AdminController.fetchSalesReport);
+
+adminRouter.get("/dashboard", AdminController.fetchDashboard);

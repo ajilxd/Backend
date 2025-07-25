@@ -13,7 +13,12 @@ class SubscriberRepository
   }
 
   findByCustomerId(customerId: string) {
-    return this.model.findOne({ customerId }).exec();
+    return this.model.findOne({ customerId, status: "active" }).exec();
+  }
+
+  async deactivateByCustomerId(customerId: string): Promise<ISubscriber[]> {
+    await this.model.updateMany({ customerId }, { status: "inactive" }).exec();
+    return this.model.find({ customerId }).exec();
   }
 }
 

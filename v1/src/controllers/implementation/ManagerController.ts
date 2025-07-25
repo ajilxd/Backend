@@ -18,30 +18,23 @@ import UserChatService from "../../services/implementation/UserChatService";
 import TaskService from "../../services/implementation/TaskService";
 import { ITaskService } from "../../services/interface/ITaskService";
 import { EventType } from "../../types";
+import { ISubscriberService } from "../../services/interface/ISubscriberService";
+import SubscriberService from "../../services/implementation/SubscriberService";
+import { stripeInstance } from "../..";
+import { ICompanyService } from "../../services/interface/ICompanyService";
+import CompanyService from "../../services/implementation/CompanyService";
 
 class managerController implements IManagerController {
-  private ManagerService: IManagerService;
-  private UserService: IUserService;
-  private OwnerService: IOwnerService;
-  private NotificationService: INotificationService;
-  private UserChatService: IUserChatService;
-  private TaskService: ITaskService;
-
   constructor(
-    ManagerService: IManagerService,
-    UserService: IUserService,
-    OwnerService: IOwnerService,
-    NotificationService: INotificationService,
-    UserChatService: IUserChatService,
-    TaskService: ITaskService
-  ) {
-    this.ManagerService = ManagerService;
-    this.UserService = UserService;
-    this.OwnerService = OwnerService;
-    this.NotificationService = NotificationService;
-    this.UserChatService = UserChatService;
-    this.TaskService = TaskService;
-  }
+    private ManagerService: IManagerService,
+    private UserService: IUserService,
+    private OwnerService: IOwnerService,
+    private NotificationService: INotificationService,
+    private UserChatService: IUserChatService,
+    private TaskService: ITaskService,
+    private SubscriberService: ISubscriberService,
+    private CompanyService: ICompanyService
+  ) {}
 
   updateProfile = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -284,6 +277,112 @@ class managerController implements IManagerController {
       sendResponse(res, 200, "Succesfully fetched events", Events);
     }
   );
+  fetchDashboardHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      let subscriptionStats = { name: "N/A", status: "N/A" };
+      let companyStats = {
+        name: "N/A",
+        description: "N/A",
+        totalUsers: 0,
+        owner: "N/A",
+      };
+      let taskStats = {
+        completed: 0,
+        totalTasks: 0,
+        dueTasks: 0,
+      };
+
+      const { managerId } = req.query;
+      if (typeof managerId !== "string") {
+        throw new AppError("invalid managerId", 400, "warn");
+      }
+      const objectManagerId = new mongoose.Types.ObjectId(managerId);
+      const managerData = await this.ManagerService.findManagerById(
+        "" + objectManagerId
+      );
+      if (!managerData || !managerData.ownerId) {
+        throw new AppError("Couldn't find the manger data", 404, "warn");
+      }
+      const subscriberData = await this.SubscriberService.findByCustomerId(
+        "" + managerData.ownerId
+      );
+
+      const ownerData = await this.OwnerService.fetchOwnerById(
+        "" + managerData.ownerId
+      );
+
+      if (!ownerData) {
+        throw new AppError("Failed to find the owners data", 404, "warn");
+      }
+
+      const stripeSubscriptionData =
+        await stripeInstance.subscriptions.retrieve(
+          ownerData.subscription?.stripe_subscription_id!
+        );
+      if (subscriberData) {
+        subscriptionStats.name = subscriberData.name;
+        subscriptionStats.status =
+          stripeSubscriptionData.status || subscriberData.status;
+      }
+
+      const companyData = await this.CompanyService.findCompanyByOwnerId(
+        "" + managerData.ownerId
+      );
+      if (companyData) {
+        companyStats.description = companyData.description;
+        companyStats.name = companyData.companyName;
+        companyStats.owner = ownerData.name;
+        const companyManagers = (
+          await this.ManagerService.getAllManagers()
+        ).filter((i) => i.companyId === companyData?._id).length;
+        const companyUsers = (await this.UserService.getUsers()).filter(
+          (i) => i.companyId === companyData?._id
+        ).length;
+        companyStats.totalUsers = companyManagers + companyUsers + 1;
+      }
+
+      const managerTasks = await this.TaskService.getTasksQuery({
+        creatorId: "" + objectManagerId,
+      });
+      const completedTasks = managerTasks.filter(
+        (i) => i.status === "done"
+      ).length;
+      const dueTasks = managerTasks.filter(
+        (i) => i.dueDate < new Date()
+      ).length;
+
+      if (managerTasks.length > 0) {
+        taskStats.completed = completedTasks;
+        taskStats.dueTasks = dueTasks;
+        taskStats.totalTasks = managerTasks.length;
+      }
+
+      const users = await this.UserService.getUserByManagerId(
+        "" + objectManagerId
+      );
+      const managers = await this.ManagerService.getManagersQuery({
+        ownerId: "" + managerData.ownerId,
+      });
+      console.log(`users of the manager`, users);
+      const userData = users.map((i) => {
+        return {
+          name: i.name,
+          role: i.role,
+          status: i.isBlocked ? "inactive" : "active",
+        };
+      });
+      let totalUsers = 1 + userData.length + managers.length;
+
+      const payload = {
+        taskStats,
+        subscriptionStats,
+        companyStats,
+        userData,
+        totalUsers,
+      };
+      sendResponse(res, 200, "Succesfully fetched manager", payload);
+    }
+  );
 }
 
 export default new managerController(
@@ -292,5 +391,7 @@ export default new managerController(
   OwnerService,
   NotificationService,
   UserChatService,
-  TaskService
+  TaskService,
+  SubscriberService,
+  CompanyService
 );

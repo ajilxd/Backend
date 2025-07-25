@@ -36,3 +36,5 @@ userRouter.get(
 );
 
 userRouter.get("/events/:userId", UserController.getCalendarEventsHandler);
+
+userRouter.get("/dashboard", UserController.fetchDashboardHandler);

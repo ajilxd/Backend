@@ -29,7 +29,7 @@ const TaskSchema: Schema<ITask> = new Schema(
       required: true,
     },
     status: { type: String, enum: TaskStatus, required: true },
-    dueDate: { type: Date, required: false },
+    dueDate: { type: Date, required: true },
     completed: { type: Boolean, default: false },
     completedAt: { type: Date },
     archived: { type: Boolean, default: false },

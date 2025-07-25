@@ -3,4 +3,5 @@ import { IBaseRepository } from "./IBaserRepository";
 
 export interface ISubscriberRepository extends IBaseRepository<ISubscriber> {
   findByCustomerId(customerId: string): Promise<ISubscriber | null>;
+  deactivateByCustomerId(customerId: string): Promise<ISubscriber[]>;
 }

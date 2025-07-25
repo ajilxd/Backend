@@ -17,17 +17,8 @@ class SubscriberService implements ISubscriberService {
     return this.SubscriberRepository.findByCustomerId(id);
   }
 
-  async update(
-    customerId: string,
-    data: Partial<ISubscriber>
-  ): Promise<ISubscriber | null> {
-    const subscriber = await this.SubscriberRepository.findByCustomerId(
-      customerId
-    );
-    if (subscriber) {
-      return this.SubscriberRepository.update("" + subscriber._id, data);
-    }
-    return null;
+  deactivateSubscriber(customerId: string): Promise<ISubscriber[]> {
+    return this.SubscriberRepository.deactivateByCustomerId(customerId);
   }
 }
 

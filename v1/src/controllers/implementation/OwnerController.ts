@@ -9,7 +9,6 @@ import { ITokenService } from "../../services/interface/ITokenService";
 import { IManagerService } from "../../services/interface/IManagerService";
 import ManagerService from "../../services/implementation/ManagerService";
 import SubscriptionService from "../../services/implementation/SubscriptionService";
-import { ISubscription } from "../../entities/ISubscription";
 import { ISubscriptionService } from "../../services/interface/ISubscriptionService";
 import mongoose from "mongoose";
 import { stripeInstance } from "../..";
@@ -19,27 +18,25 @@ import { logger } from "../../utils/logger";
 import { IOwner } from "../../entities/IOwner";
 import { IUserService } from "../../services/interface/IUserService";
 import UserService from "../../services/implementation/UserService";
+import { ISubscriberService } from "../../services/interface/ISubscriberService";
+import SubscriberService from "../../services/implementation/SubscriberService";
+import { ISpaceService } from "../../services/interface/ISpaceService";
+import SpaceService from "../../services/implementation/SpaceService";
+import { ITaskService } from "../../services/interface/ITaskService";
+import TaskService from "../../services/implementation/TaskService";
+import { string } from "joi";
 
 class OwnerController implements IOwnerController {
-  private OwnerService: IOwnerService;
-  private TokenService: ITokenService;
-  private ManagerService: IManagerService;
-  private SubscriptionService: ISubscriptionService;
-  private UserService: IUserService;
-
   constructor(
-    OwnerService: IOwnerService,
-    TokenService: ITokenService,
-    ManagerService: IManagerService,
-    SubscriptionService: ISubscriptionService,
-    UserService: IUserService
-  ) {
-    this.OwnerService = OwnerService;
-    this.TokenService = TokenService;
-    this.ManagerService = ManagerService;
-    this.SubscriptionService = SubscriptionService;
-    this.UserService = UserService;
-  }
+    private OwnerService: IOwnerService,
+    private TokenService: ITokenService,
+    private ManagerService: IManagerService,
+    private SubscriptionService: ISubscriptionService,
+    private UserService: IUserService,
+    private SubscriberService: ISubscriberService,
+    private SpaceService: ISpaceService,
+    private TaskService: ITaskService
+  ) {}
 
   registerOwner = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -503,6 +500,105 @@ class OwnerController implements IOwnerController {
       );
     }
   );
+
+  fetchDashboardHandler = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { ownerId } = req.query;
+      if (!ownerId) {
+        throw new AppError("Owner id is missing", 400, "warn");
+      }
+      let ownerObjectId;
+      if (typeof ownerId !== "string") {
+        throw new AppError("invalid ownerid", 400, "warn");
+      }
+      ownerObjectId = new mongoose.Types.ObjectId(ownerId);
+      console.log("object id of ownerid", ownerObjectId);
+      if (!ownerObjectId) {
+        throw new AppError("Invalid ownerid", 400, "warn");
+      }
+      const ownerSubscription = await this.SubscriberService.findByCustomerId(
+        "" + ownerObjectId
+      );
+      if (!ownerSubscription) {
+        logger.info(`No subscription found with this owner Id (${ownerId})`);
+      }
+
+      const subscripitionData = {
+        name: ownerSubscription?.name ?? "N/A",
+        status: ownerSubscription?.status ?? "N/A",
+        amount: ownerSubscription?.amount ?? "N/A",
+        billingDate: ownerSubscription?.expiresAt ?? "N/A",
+        validSubscription: !!ownerSubscription,
+      };
+
+      const ownManagers = (
+        await this.ManagerService.getManagers("" + ownerObjectId)
+      ).length;
+      const ownUsers = (
+        await this.UserService.getUsersQuery({
+          ownerId: "" + ownerObjectId,
+        })
+      ).length;
+      const ownSpaces = (
+        await this.SpaceService.getSpaces({
+          owner: "" + ownerObjectId,
+        })
+      ).length;
+
+      const managerLimit = ownerSubscription?.features.managerCount;
+      const userLimit = ownerSubscription?.features.userCount;
+      const spaceLimit = ownerSubscription?.features.spaces;
+
+      const quotaData = {
+        ownManagers,
+        ownUsers,
+        ownSpaces,
+        managerLimit,
+        userLimit,
+        spaceLimit,
+      };
+      const ownerSpacesRaw = await this.SpaceService.getSpaces({
+        owner: "" + ownerObjectId,
+      });
+
+      const ownerSpaces = await Promise.all(
+        ownerSpacesRaw.map(async (i) => ({
+          name: i.name,
+          users: (
+            await this.UserService.getUsersQuery({ spaces: "" + i._id })
+          ).length,
+          managers: (
+            await this.ManagerService.getManagersQuery({
+              spaces: "" + i._id,
+            })
+          ).length,
+          tasks: (
+            await this.TaskService.getTasksQuery({ spaceId: "" + i._id })
+          ).length,
+        }))
+      );
+      const managerData = (
+        await this.ManagerService.getManagers("" + ownerObjectId)
+      ).map((i) => ({
+        name: i.name,
+        status: i.isBlocked ? "inactive" : "active",
+        image: i.image,
+      }));
+
+      const payload = {
+        subscripitionData,
+        quotaData,
+        ownerSpaces,
+        managerData,
+      };
+      sendResponse(
+        res,
+        200,
+        "succesfully fetched owner dashboard data",
+        payload
+      );
+    }
+  );
 }
 
 export default new OwnerController(
@@ -510,5 +606,8 @@ export default new OwnerController(
   TokenService,
   ManagerService,
   SubscriptionService,
-  UserService
+  UserService,
+  SubscriberService,
+  SpaceService,
+  TaskService
 );

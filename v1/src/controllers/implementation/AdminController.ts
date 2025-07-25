@@ -22,6 +22,10 @@ import SubscriptionService from "../../services/implementation/SubscriptionServi
 import { ISubscriberService } from "../../services/interface/ISubscriberService";
 import SubscriberService from "../../services/implementation/SubscriberService";
 import { Transaction } from "../../schemas/transactionSchema";
+import { ICompanyService } from "../../services/interface/ICompanyService";
+import CompanyService from "../../services/implementation/CompanyService";
+import { Subscription } from "../../schemas/subscriptionSchema";
+import { Subscriber } from "../../schemas/subscriberSchema";
 type MonthName =
   | "Jan"
   | "Feb"
@@ -56,7 +60,8 @@ class AdminController implements IAdminController {
     private UserService: IUserService,
     private TransactionService: ITransactionService,
     private SubscriptionService: ISubscriptionService,
-    private SubscriberService: ISubscriberService
+    private SubscriberService: ISubscriberService,
+    private CompanyService: ICompanyService
   ) {}
 
   loginAdmin = catchAsync(
@@ -382,7 +387,6 @@ class AdminController implements IAdminController {
       const startOfYear = new Date(`${2025}-01-01T00:00:00Z`);
       const endOfYear = new Date(`${2025}-12-31T23:59:59Z`);
 
-      // Aggregate Transactions: Sales + New Customers
       const transactions = await Transaction.aggregate([
         {
           $match: {
@@ -464,6 +468,42 @@ class AdminController implements IAdminController {
       sendResponse(res, 200, "data fetched succesfully", payload);
     }
   );
+
+  fetchDashboard = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const totalRevenue = (await this.TransactionService.fetchAll())
+        .filter((i) => i.status === "success")
+        .reduce((sum, item) => sum + Number(item.amount), 0);
+      const totalCompanies = (await this.CompanyService.findAllCompanies())
+        .length;
+      const totalSubscriptions = (
+        await this.SubscriptionService.fetchSubscriptions()
+      ).length;
+
+      const totalManagers = (await this.ManagerService.getAllManagers()).length;
+      const totalUseraccounts = (await this.UserService.getUsers()).length;
+      const totalOwners = (await this.OwnerService.getOwners()).length;
+      const totalUsers = totalManagers + totalUseraccounts + totalOwners;
+
+      const latestSubscribers = (await this.SubscriberService.fetchAll()).slice(
+        0,
+        5
+      );
+
+      const topSubscriptions = await Subscription.find().sort().limit(5);
+
+      const payload = {
+        totalRevenue,
+        totalCompanies,
+        totalSubscriptions,
+        totalUsers,
+        latestSubscribers,
+        topSubscriptions,
+      };
+
+      sendResponse(res, 200, "succesfully fetched the dashboard data", payload);
+    }
+  );
 }
 
 export default new AdminController(
@@ -473,5 +513,6 @@ export default new AdminController(
   UserService,
   TransactionService,
   SubscriptionService,
-  SubscriberService
+  SubscriberService,
+  CompanyService
 );

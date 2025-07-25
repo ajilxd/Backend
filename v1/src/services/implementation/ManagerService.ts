@@ -90,12 +90,6 @@ class ManagerService implements IManagerService {
 
   async getManagers(ownerId: string): Promise<IManager[]> {
     const managers = await this.managerRepository.getManagers(ownerId);
-    if (!managers.length) {
-      throw new AppError(
-        `No managers found with this owner Id -${ownerId}`,
-        404
-      );
-    }
 
     return managers;
   }
