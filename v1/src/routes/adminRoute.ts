@@ -3,7 +3,7 @@ import AdminController from "../controllers/implementation/AdminController";
 import SubscriptionController from "../controllers/implementation/SubscriptionController";
 import { requestValidator } from "../middleware/requestValidator";
 import { AdminLoginDto } from "../dtos/admin/admin.dto";
-import { validateQueryDTO } from "../middleware/requestQueryValidator";
+import { validateQuery } from "../middleware/requestQueryValidator";
 import { FetchUserQueryDTO } from "../dtos/admin/fetchUsersquery.dto";
 
 export const adminRouter = Router();
@@ -28,7 +28,7 @@ adminRouter.get("/logout", AdminController.logoutAdmin);
 
 adminRouter.get(
   "/users",
-  validateQueryDTO(FetchUserQueryDTO),
+  validateQuery(FetchUserQueryDTO),
   AdminController.fetchAllusersHandler
 );
 

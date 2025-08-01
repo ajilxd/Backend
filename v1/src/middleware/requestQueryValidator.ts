@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 
-export function validateQueryDTO(DTOClass: any) {
+export function validateQuery(DTOClass: any) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const queryInstance = plainToInstance(DTOClass, req.query) as object;
 
