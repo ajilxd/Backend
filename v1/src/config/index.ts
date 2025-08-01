@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import { iconfig } from "../types";
 dotenv.config();
-const config: iconfig<string> = {
+const config: iconfig = {
   PORT: Number(process.env.PORT),
   JWT_SECRET_KEY: process.env.JWT_SECRET,
   MONGODB_URI: process.env.MONGODB_URI,

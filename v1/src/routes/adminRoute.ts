@@ -3,6 +3,8 @@ import AdminController from "../controllers/implementation/AdminController";
 import SubscriptionController from "../controllers/implementation/SubscriptionController";
 import { requestValidator } from "../middleware/requestValidator";
 import { AdminLoginDto } from "../dtos/admin/admin.dto";
+import { validateQueryDTO } from "../middleware/requestQueryValidator";
+import { FetchUserQueryDTO } from "../dtos/admin/fetchUsersquery.dto";
 
 export const adminRouter = Router();
 
@@ -22,15 +24,13 @@ adminRouter.patch(
   SubscriptionController.updateSubscriptionStatus
 );
 
-adminRouter.get("/owners", AdminController.showOwners);
-adminRouter.patch(
-  "/toggle-owner-status/:id",
-  AdminController.toggleOwnerStatus
-);
-
 adminRouter.get("/logout", AdminController.logoutAdmin);
 
-adminRouter.get("/users", AdminController.fetchAllusersHandler);
+adminRouter.get(
+  "/users",
+  validateQueryDTO(FetchUserQueryDTO),
+  AdminController.fetchAllusersHandler
+);
 
 adminRouter.patch("/users", AdminController.BlockUser);
 

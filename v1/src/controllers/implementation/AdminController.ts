@@ -26,6 +26,11 @@ import { ICompanyService } from "../../services/interface/ICompanyService";
 import CompanyService from "../../services/implementation/CompanyService";
 import { Subscription } from "../../schemas/subscriptionSchema";
 import { Subscriber } from "../../schemas/subscriberSchema";
+import { successMap, SuccessType } from "../../constants/response.succesful";
+import { errorMap, ErrorType } from "../../constants/response.failture";
+import { FetchUserQueryDTO } from "../../dtos/admin/fetchUsersquery.dto";
+import { plainToInstance } from "class-transformer";
+import { FetchUserResponseDTO } from "../../dtos/admin/fetchUsersResponse.dto";
 type MonthName =
   | "Jan"
   | "Feb"
@@ -75,7 +80,12 @@ class AdminController implements IAdminController {
         secure: false,
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-      return res.json({ accessToken });
+      sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        accessToken
+      );
     }
   );
 
@@ -86,53 +96,24 @@ class AdminController implements IAdminController {
         expires: new Date(0),
       });
       await this.AdminService.clearRefreshToken();
-      sendResponse(res, 200, "logout went succesfull");
-    }
-  );
-
-  showOwners = catchAsync(
-    async (req: Request, res: Response, next: NextFunction) => {
-      const page = Number(req.query.page) || 1;
-      const itemPerPage = Number(req.query.itemPerPage) || 5;
-
-      const users = await this.OwnerService.getOwners();
-      const totalPage = Math.ceil(users.length / itemPerPage);
-      logger.info({ length: users.length, totalPage });
-      const skip = (page - 1) * itemPerPage;
-      const paginatedUsers = users.slice(skip, skip + itemPerPage);
-      return sendResponse(res, 200, `Succesfully fetched owners`, {
-        users: paginatedUsers,
-        totalPage,
-      });
-    }
-  );
-
-  toggleOwnerStatus = catchAsync(
-    async (req: Request, res: Response, next: NextFunction) => {
-      let { id } = req.params;
-
-      if (id) {
-        const updatedOwner = await this.OwnerService.updateOwnerStatus(id);
-        res.status(200).json({ status: "success", data: updatedOwner });
-      }
+      sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message
+      );
     }
   );
 
   fetchAllusersHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const search = (req.query.search as string)?.trim().toLowerCase();
-      const status = (req.query.status as string)?.trim().toLowerCase();
-      const role = (req.query.role as string)?.trim().toLowerCase();
-      const page = +(req.query.page as string)?.trim().toLowerCase() || 1;
-      const itemPerPage = +(req.query.itemPerPage as string) || 10;
+      const {
+        search,
+        status,
+        role,
+        page = 1,
+        itemPerPage = 10,
+      } = req.validatedQuery as FetchUserQueryDTO;
 
-      if (!page || !itemPerPage) {
-        throw new AppError(
-          "Bad request - page/itemPerpage missing",
-          400,
-          "warn"
-        );
-      }
       let owners = await this.OwnerService.getOwners();
       let managers = await this.ManagerService.getAllManagers();
       let users = await this.UserService.getUsers();
@@ -171,6 +152,7 @@ class AdminController implements IAdminController {
         });
       });
 
+      // filters
       if (role && role !== "") {
         accounts = accounts.filter((i) => i.role.toLowerCase() === role);
       }
@@ -187,13 +169,27 @@ class AdminController implements IAdminController {
         accounts = accounts.filter((i) => i.status === status);
       }
 
+      //pagination
       const totalPage = Math.ceil(accounts.length / itemPerPage);
       const skip = (page - 1) * itemPerPage;
       const paginatedAccounts = accounts.slice(skip, skip + itemPerPage);
-      sendResponse(res, 200, "Succesfully fetched all users", {
-        users: paginatedAccounts,
-        totalPage,
-      });
+
+      //response dto
+
+      const payload = plainToInstance(
+        FetchUserResponseDTO,
+        {
+          users: paginatedAccounts,
+          totalPage,
+        },
+        { excludeExtraneousValues: true }
+      );
+      sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        payload
+      );
     }
   );
 
