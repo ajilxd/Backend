@@ -16,9 +16,6 @@ class SpaceRepository
 
   async getSpacesByQuery(query: SpaceQueryType): Promise<ISpace[]> {
     const result = await Space.find(query);
-    if (!result.length) {
-      throw new AppError("No space found", 404);
-    }
     return result;
   }
 

@@ -14,6 +14,8 @@ import OwnerRepository from "../repositories/implementations/OwnerRepository";
 import TransactionService from "../services/implementation/TransactionService";
 import OwnerService from "../services/implementation/OwnerService";
 import SubscriberService from "../services/implementation/SubscriberService";
+import InvoiceRepository from "../repositories/implementations/InvoiceRepository";
+import InvoiceService from "../services/implementation/InvoiceService";
 const endpointSecret = config.STRIPE_WEBHOOK_SECRET_KEY;
 
 export const handleWebhook = async (
@@ -198,53 +200,36 @@ export const handleWebhook = async (
     case "invoice.created":
       const invoiceObject = event.data.object as Stripe.Invoice;
 
-      console.log("invoice object data", invoiceObject);
-
       try {
         const subscriptionData = await stripeInstance.subscriptions.retrieve(
           invoiceObject.subscription as string
         );
 
-        const price = subscriptionData.items.data[0].price;
-        const productId = price.product as string;
-
-        const productDetails = await stripeInstance.products.retrieve(
-          productId
-        );
-        const { name } = productDetails;
-
         const subscriptionDB = await subscriberService.findSubscriptionById(
           subscriptionData.metadata.subscriptionId
         );
-        const {
-          total,
-          currency,
-          hosted_invoice_url,
-          invoice_pdf,
-          customer_email,
-          created,
-          id,
-        } = invoiceObject;
+        const { total, customer_email, id } = invoiceObject;
 
-        const invoiceObjForOwnerUpdation = {
-          total,
-          currency,
-          hosted_invoice_url,
-          invoice_pdf,
-          customer_email,
-          name,
-          created,
-          id,
-          subscription_id: subscriptionData.id,
-        };
-
-        console.log("Invoice data for updation", invoiceObjForOwnerUpdation);
         const ownerData = await OwnerRepository.findByEmail(
           "" + customer_email
         );
-        await OwnerRepository.updationByEmail(customer_email!, {
-          invoices: [...ownerData?.invoices!, invoiceObjForOwnerUpdation],
+
+        if (!ownerData) {
+          throw new Error("No owner data found with this customer id");
+        }
+
+        await InvoiceService.createInvoice({
+          amount: +total,
+          customerEmail: ownerData.email,
+          customerId: "" + ownerData._id,
+          customerName: ownerData.name,
+          currency: "inr",
+          subscriptionId: subscriptionData.id,
+          subscriptionName: subscriptionDB.name,
+          invoiceId: id,
         });
+
+        logger.info(`Succesfully created invoice for ` + ownerData.name);
         if (
           invoiceObject.billing_reason === "subscription_create" ||
           !ownerData ||
@@ -275,7 +260,10 @@ export const handleWebhook = async (
           upgrade: false,
         });
         if (transaction) {
-          logger.info("Transaction has been recorded succesfully");
+          logger.info(
+            `Transaction has been recorded succesfully for the user ` +
+              ownerData.name
+          );
         }
       } catch (error) {
         console.error("Error handling invoice.created event:", error);

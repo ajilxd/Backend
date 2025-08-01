@@ -43,6 +43,10 @@ class managerController implements IManagerController {
         throw new AppError("Manager id required", 400, "warn");
       }
       const managerData = req.body;
+      if ("ownerId" in managerData) {
+        delete managerData.ownerId;
+        delete managerData.userId;
+      }
       const updated = await this.ManagerService.updateManager(
         managerId,
         managerData

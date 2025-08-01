@@ -51,6 +51,11 @@ class UserController implements IUserController {
       if (!userId) {
         throw new AppError("No user id found", 400, "warn");
       }
+      const modifiedData = req.body;
+      if ("ownerId" in modifiedData) {
+        delete modifiedData.ownerId;
+        delete modifiedData.userId;
+      }
       const updated = await this.UserService.updateUser(userId, req.body);
 
       return sendResponse(
@@ -164,7 +169,6 @@ class UserController implements IUserController {
       const query: Record<string, string> = {};
       query["assignee.id"] = userId;
       const Tasks = await this.TaskService.getTasksQuery(query);
-      console.log("Tasks", Tasks);
       let Events: EventType[] = [];
       if (Tasks.length > 0) {
         Events = Tasks.filter((i) => i.dueDate instanceof Date).map((i) => {
