@@ -2,7 +2,6 @@ import { Namespace, Socket } from "socket.io";
 import { Notification } from "../schemas/notificationSchema";
 import { logger } from "../utils/logger";
 import UserChatService from "../services/implementation/UserChatService";
-import AppError from "../errors/appError";
 
 interface CustomSocket extends Socket {
   userId?: string;
@@ -138,6 +137,17 @@ export function registerNotificationHandlers(
         );
       }
     }
+  });
+
+  socket.on("meeting", (data) => {
+    const { companyId } = data;
+    socket.to(companyId).emit("meeting", data);
+  });
+
+  socket.on("space", (data) => {
+    const { companyId } = data;
+    console.log("new space event", data);
+    socket.to(companyId).emit("space", data);
   });
 
   socket.on("disconnect", () => {

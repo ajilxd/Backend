@@ -24,7 +24,8 @@ import { ISpaceService } from "../../services/interface/ISpaceService";
 import SpaceService from "../../services/implementation/SpaceService";
 import { ITaskService } from "../../services/interface/ITaskService";
 import TaskService from "../../services/implementation/TaskService";
-import { string } from "joi";
+import { IInvoiceService } from "../../services/interface/IInvoiceService";
+import InvoiceService from "../../services/implementation/InvoiceService";
 
 class OwnerController implements IOwnerController {
   constructor(
@@ -35,7 +36,8 @@ class OwnerController implements IOwnerController {
     private UserService: IUserService,
     private SubscriberService: ISubscriberService,
     private SpaceService: ISpaceService,
-    private TaskService: ITaskService
+    private TaskService: ITaskService,
+    private InvoiceService: IInvoiceService
   ) {}
 
   registerOwner = catchAsync(
@@ -437,18 +439,14 @@ class OwnerController implements IOwnerController {
         throw new AppError("No owner id found at path params", 400, "warn");
       }
 
-      const ownerData = await this.OwnerService.fetchOwnerById(id);
-      if (ownerData && ownerData.invoices) {
-        const { invoices } = ownerData;
-        sendResponse(
-          res,
-          200,
-          `Succesfully fetched invoices data for the owner id - ${id}`,
-          invoices
-        );
-      } else {
-        sendResponse(res, 404, `No owner invoices found`);
-      }
+      const invoices = await this.InvoiceService.fetchInvoicesBycustomerId(id);
+
+      sendResponse(
+        res,
+        200,
+        `Succesfully fetched invoices data for the owner id - ${id}`,
+        invoices
+      );
     }
   );
 
@@ -609,5 +607,6 @@ export default new OwnerController(
   UserService,
   SubscriberService,
   SpaceService,
-  TaskService
+  TaskService,
+  InvoiceService
 );
