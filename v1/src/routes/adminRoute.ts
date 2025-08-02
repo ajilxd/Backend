@@ -7,6 +7,7 @@ import { validateQuery } from "../middleware/requestQueryValidator";
 import { FetchUserQueryDTO } from "../dtos/admin/fetchUsersquery.dto";
 import { PatchUserDTO } from "../dtos/admin/patchUserDto";
 import authMiddleware from "../middleware/auth";
+import { FetchTransactionQueryDTO } from "../dtos/admin/fetchTransactionquery.dto";
 
 export const adminRouter = Router();
 
@@ -15,11 +16,23 @@ adminRouter.post(
   validateBody(AdminLoginDto),
   AdminController.loginAdmin
 );
-adminRouter.post("/subscription", SubscriptionController.AddSubscription);
+adminRouter.post(
+  "/subscription",
+  authMiddleware(["admin"]),
+  SubscriptionController.AddSubscription
+);
 
-adminRouter.get("/subscriptions", AdminController.fetchAllSubscriptions);
+adminRouter.get(
+  "/subscriptions",
+  authMiddleware(["admin"]),
+  AdminController.fetchAllSubscriptions
+);
 
-adminRouter.put("/subscription/:id", SubscriptionController.updateSubscription);
+adminRouter.put(
+  "/subscription/:id",
+  authMiddleware(["admin"]),
+  SubscriptionController.updateSubscription
+);
 
 adminRouter.patch(
   "/toggle-subscription-status/:id",
@@ -34,20 +47,39 @@ adminRouter.get(
 
 adminRouter.get(
   "/users",
+  authMiddleware(["admin"]),
   validateQuery(FetchUserQueryDTO),
   AdminController.fetchAllusersHandler
 );
 
 adminRouter.patch(
   "/users",
+  authMiddleware(["admin"]),
   validateBody(PatchUserDTO),
   AdminController.BlockUser
 );
 
-adminRouter.get("/transactions", AdminController.fetchAllTransactions);
+adminRouter.get(
+  "/transactions",
+  authMiddleware(["admin"]),
+  validateQuery(FetchTransactionQueryDTO),
+  AdminController.fetchAllTransactions
+);
 
-adminRouter.get("/subscribers", AdminController.fetchAllSubscribers);
+adminRouter.get(
+  "/subscribers",
+  authMiddleware(["admin"]),
+  AdminController.fetchAllSubscribers
+);
 
-adminRouter.get("/sales-report", AdminController.fetchSalesReport);
+adminRouter.get(
+  "/sales-report",
+  authMiddleware(["admin"]),
+  AdminController.fetchSalesReport
+);
 
-adminRouter.get("/dashboard", AdminController.fetchDashboard);
+adminRouter.get(
+  "/dashboard",
+  authMiddleware(["admin"]),
+  AdminController.fetchDashboard
+);

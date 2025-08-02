@@ -31,6 +31,7 @@ import { errorMap, ErrorType } from "../../constants/response.failture";
 import { FetchUserQueryDTO } from "../../dtos/admin/fetchUsersquery.dto";
 import { plainToInstance } from "class-transformer";
 import { FetchUserResponseDTO } from "../../dtos/admin/fetchUsersResponse.dto";
+import { FetchTransactionQueryDTO } from "../../dtos/admin/fetchTransactionquery.dto";
 type MonthName =
   | "Jan"
   | "Feb"
@@ -74,7 +75,7 @@ class AdminController implements IAdminController {
       const { email, password } = req.body;
       const { accessToken, refreshToken } =
         await this.AdminService.authenticateAdmin(email, password);
-      console.log({ accessToken, refreshToken });
+
       res.cookie("adminRefreshToken", refreshToken, {
         httpOnly: true,
         sameSite: "lax",
@@ -92,11 +93,11 @@ class AdminController implements IAdminController {
 
   logoutAdmin = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
+      await this.AdminService.clearRefreshToken();
       res.cookie("adminRefreshToken", "", {
         httpOnly: true,
         expires: new Date(0),
       });
-      await this.AdminService.clearRefreshToken();
       sendResponse(
         res,
         successMap[SuccessType.Ok].code,
@@ -163,33 +164,38 @@ class AdminController implements IAdminController {
   BlockUser = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { role, id, block } = req.body;
-      if (!role || !id || !("block" in req.body)) {
-        console.log(req.body);
-        throw new AppError(`Bad request - missing fields`, 400, "warn");
+
+      switch (role) {
+        case "user":
+          await this.UserService.updateUser(id, { isBlocked: block });
+          break;
+        case "manager":
+          await this.ManagerService.updateManager(id, { isBlocked: block });
+          break;
+        case "owner":
+          await this.OwnerService.updateOwner(id, { isBlocked: block });
+          break;
+        default:
+          throw new AppError(`Invalid role ${role}`, 400, "warn");
       }
-      if (role === "user") {
-        await this.UserService.updateUser(id, { isBlocked: block });
-      } else if (role === "manager") {
-        await this.ManagerService.updateManager(id, { isBlocked: block });
-      } else if (role === "owner") {
-        await this.OwnerService.updateOwner(id, { isBlocked: block });
-      } else {
-        throw new AppError(`Invalid role ${role}`, 400, "warn");
-      }
+
       sendResponse(
         res,
-        200,
-        `succesfully updated the status of ${role} with  ${id}`
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message
       );
     }
   );
 
   fetchAllTransactions = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const search = (req.query.search as string)?.trim().toLowerCase();
-      const status = (req.query.status as string)?.trim().toLowerCase();
-      const page = +(req.query.page as string) || 1;
-      const itemPerPage = +(req.query.itemPerPage as string) || 10;
+      const {
+        search,
+        status,
+        page = 1,
+        itemPerPage = 10,
+      } = req.query as FetchTransactionQueryDTO;
+
       let transactions: ITransaction[] =
         await this.TransactionService.fetchAll();
 
