@@ -1,5 +1,6 @@
 import { IManager } from "../../entities/IManager";
 import { ManagerQueryType } from "../../repositories/implementations/ManagerRepository";
+import { AccountType } from "../../types";
 
 export interface IManagerService {
   createManager(managerData: Partial<IManager>): Promise<IManager>;
@@ -14,4 +15,5 @@ export interface IManagerService {
   getManagersQuery(query: ManagerQueryType): Promise<IManager[]>;
   fetchManagerByEmail(email: string): Promise<IManager | null>;
   getAllManagers(): Promise<IManager[]>;
+  getManagerAccounts(): Promise<AccountType[]>;
 }

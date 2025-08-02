@@ -10,6 +10,7 @@ import { IUserRepository } from "../../repositories/interface/IUserRepository";
 import UserRepository from "../../repositories/implementations/UserRepository";
 
 import AppError from "../../errors/appError";
+import { AccountType } from "../../types";
 
 class ManagerService implements IManagerService {
   private managerRepository: IManagerRepository;
@@ -102,6 +103,23 @@ class ManagerService implements IManagerService {
   async getAllManagers(): Promise<IManager[]> {
     const managers = await this.managerRepository.findAll();
     return managers;
+  }
+
+  async getManagerAccounts() {
+    const managers = await this.managerRepository.findAll();
+    const accounts: AccountType[] = [];
+    managers.map((i) => {
+      accounts.push({
+        role: "manager",
+        name: i.name,
+        image: i.image!,
+        userId: "" + i._id,
+        company: i.companyName,
+        status: i.isBlocked ? "inactive" : "active",
+        joinedAt: i.createdAt,
+      });
+    });
+    return accounts;
   }
 }
 export default new ManagerService(ManagerRepository, UserRepository);

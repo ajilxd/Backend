@@ -5,6 +5,7 @@ import UserRepository, {
   UserQueryType,
 } from "../../repositories/implementations/UserRepository";
 import AppError from "../../errors/appError";
+import { AccountType } from "../../types";
 
 class UserService implements IUserService {
   private userRepository: IUserRepository;
@@ -96,6 +97,23 @@ class UserService implements IUserService {
   async getUsersQuery(query: UserQueryType): Promise<IUser[]> {
     const result = await this.userRepository.getUsersByQuery(query);
     return result;
+  }
+
+  async getUserAccounts() {
+    const users = await this.userRepository.findAll();
+    const accounts: AccountType[] = [];
+    users.map((i) => {
+      accounts.push({
+        role: "user",
+        name: i.name,
+        image: i.image!,
+        userId: "" + i._id,
+        company: i.companyName,
+        status: i.isBlocked ? "inactive" : "active",
+        joinedAt: i.createdAt,
+      });
+    });
+    return accounts;
   }
 }
 

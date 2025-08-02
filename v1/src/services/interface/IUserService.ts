@@ -1,5 +1,6 @@
 import { IUser } from "../../entities/IUser";
 import { UserQueryType } from "../../repositories/implementations/UserRepository";
+import { AccountType } from "../../types";
 
 export interface IUserService {
   create(user: Partial<IUser>): Promise<IUser>;
@@ -11,4 +12,5 @@ export interface IUserService {
   getUsersQuery(query: UserQueryType): Promise<IUser[]>;
   removeUserSpace(userId: string, spaceId: string): Promise<IUser>;
   findUserByEmail(email: string): Promise<IUser | null>;
+  getUserAccounts(): Promise<AccountType[]>;
 }

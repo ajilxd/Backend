@@ -115,44 +115,10 @@ class AdminController implements IAdminController {
         itemPerPage = 10,
       } = req.validatedQuery as FetchUserQueryDTO;
 
-      let owners = await this.OwnerService.getOwners();
-      let managers = await this.ManagerService.getAllManagers();
-      let users = await this.UserService.getUsers();
-      let accounts: AccountType[] = [];
-      owners.map((i) => {
-        accounts.push({
-          role: "owner",
-          name: i.name,
-          image: i.image,
-          userId: "" + i._id,
-          company: i.company.companyName,
-          status: i.isBlocked ? "inactive" : "active",
-          joinedAt: i.createdAt,
-        });
-      });
-      users.map((i) => {
-        accounts.push({
-          role: "user",
-          name: i.name,
-          image: i.image!,
-          userId: "" + i._id,
-          company: i.companyName,
-          status: i.isBlocked ? "inactive" : "active",
-          joinedAt: i.createdAt,
-        });
-      });
-      managers.map((i) => {
-        accounts.push({
-          role: "manager",
-          name: i.name,
-          image: i.image!,
-          userId: "" + i._id,
-          company: i.companyName,
-          status: i.isBlocked ? "inactive" : "active",
-          joinedAt: i.createdAt,
-        });
-      });
-
+      const ownerAccounts = await this.OwnerService.getOwnersAccounts();
+      const managerAccounts = await this.ManagerService.getManagerAccounts();
+      const userAccounts = await this.UserService.getUserAccounts();
+      let accounts = [...ownerAccounts, ...managerAccounts, ...userAccounts];
       // filters
       if (role && role !== "") {
         accounts = accounts.filter((i) => i.role.toLowerCase() === role);

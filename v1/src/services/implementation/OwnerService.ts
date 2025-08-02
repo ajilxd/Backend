@@ -8,6 +8,7 @@ import OwnerRepository, {
 import bcrypt from "bcryptjs";
 import config from "../../config";
 import jwt from "jsonwebtoken";
+import { AccountType } from "../../types";
 
 class OwnerService implements IOwnerService {
   private ownerRepository: IOwnerRepository;
@@ -188,6 +189,23 @@ class OwnerService implements IOwnerService {
   async getOwnersQuery(query: OwnerQueryType): Promise<IOwner[]> {
     const result = await this.ownerRepository.find(query);
     return result;
+  }
+
+  async getOwnersAccounts() {
+    const owners = await this.ownerRepository.findAll();
+    const accounts: AccountType[] = [];
+    owners.map((i) => {
+      accounts.push({
+        role: "owner",
+        name: i.name,
+        image: i.image,
+        userId: "" + i._id,
+        company: i.company.companyName,
+        status: i.isBlocked ? "inactive" : "active",
+        joinedAt: i.createdAt,
+      });
+    });
+    return accounts;
   }
 }
 
