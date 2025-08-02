@@ -21,8 +21,6 @@ export interface iconfig {
   STRIPE_SECRET_KEY?: string;
   STRIPE_PUBLIC_KEY?: string;
   STRIPE_WEBHOOK_SECRET_KEY?: string;
-  ADMIN_ACCESS_SECRET?: string;
-  ADMIN_REFRESH_SECRET?: string;
   GENERAL_ACCESS_SECRET?: string;
   GENERAL_REFRESH_SECRET?: string;
 }

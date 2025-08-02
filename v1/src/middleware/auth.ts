@@ -13,6 +13,7 @@ declare global {
 
 const authMiddleware = (allowedRoles: string[] = []) => {
   return (req: Request, res: Response, next: NextFunction): void => {
+    console.log("req headers", req.headers);
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {

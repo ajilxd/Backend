@@ -74,7 +74,8 @@ class AdminController implements IAdminController {
       const { email, password } = req.body;
       const { accessToken, refreshToken } =
         await this.AdminService.authenticateAdmin(email, password);
-      res.cookie("refreshToken", refreshToken, {
+      console.log({ accessToken, refreshToken });
+      res.cookie("adminRefreshToken", refreshToken, {
         httpOnly: true,
         sameSite: "lax",
         secure: false,
@@ -84,14 +85,14 @@ class AdminController implements IAdminController {
         res,
         successMap[SuccessType.Ok].code,
         successMap[SuccessType.Ok].message,
-        accessToken
+        { accessToken }
       );
     }
   );
 
   logoutAdmin = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      res.cookie("refreshToken", "", {
+      res.cookie("adminRefreshToken", "", {
         httpOnly: true,
         expires: new Date(0),
       });

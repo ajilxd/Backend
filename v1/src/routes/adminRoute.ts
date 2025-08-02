@@ -6,6 +6,7 @@ import { AdminLoginDto } from "../dtos/admin/admin.dto";
 import { validateQuery } from "../middleware/requestQueryValidator";
 import { FetchUserQueryDTO } from "../dtos/admin/fetchUsersquery.dto";
 import { PatchUserDTO } from "../dtos/admin/patchUserDto";
+import authMiddleware from "../middleware/auth";
 
 export const adminRouter = Router();
 
@@ -25,7 +26,11 @@ adminRouter.patch(
   SubscriptionController.updateSubscriptionStatus
 );
 
-adminRouter.get("/logout", AdminController.logoutAdmin);
+adminRouter.get(
+  "/logout",
+  authMiddleware(["admin"]),
+  AdminController.logoutAdmin
+);
 
 adminRouter.get(
   "/users",
