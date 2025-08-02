@@ -1,16 +1,17 @@
 import { Router } from "express";
 import AdminController from "../controllers/implementation/AdminController";
 import SubscriptionController from "../controllers/implementation/SubscriptionController";
-import { requestValidator } from "../middleware/requestValidator";
+import { validateBody } from "../middleware/requestValidator";
 import { AdminLoginDto } from "../dtos/admin/admin.dto";
 import { validateQuery } from "../middleware/requestQueryValidator";
 import { FetchUserQueryDTO } from "../dtos/admin/fetchUsersquery.dto";
+import { PatchUserDTO } from "../dtos/admin/patchUserDto";
 
 export const adminRouter = Router();
 
 adminRouter.post(
   "/login",
-  requestValidator(AdminLoginDto),
+  validateBody(AdminLoginDto),
   AdminController.loginAdmin
 );
 adminRouter.post("/subscription", SubscriptionController.AddSubscription);
@@ -32,7 +33,11 @@ adminRouter.get(
   AdminController.fetchAllusersHandler
 );
 
-adminRouter.patch("/users", AdminController.BlockUser);
+adminRouter.patch(
+  "/users",
+  validateBody(PatchUserDTO),
+  AdminController.BlockUser
+);
 
 adminRouter.get("/transactions", AdminController.fetchAllTransactions);
 
