@@ -2,7 +2,7 @@ import { Router } from "express";
 import AdminController from "../controllers/implementation/AdminController";
 import SubscriptionController from "../controllers/implementation/SubscriptionController";
 import { validateBody } from "../middleware/requestValidator";
-import { AdminLoginDto } from "../dtos/admin/admin.dto";
+import { AdminLoginDto } from "../dtos/admin/AdminLogin.dto";
 import { validateQuery } from "../middleware/requestQueryValidator";
 import { FetchUserQueryDTO } from "../dtos/admin/FetchUsersquery.dto";
 import { BlockUserDTO } from "../dtos/admin/BlockUserDto";
