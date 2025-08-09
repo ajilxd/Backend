@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import "./types/index";
+import { ISubscription } from "../entities/ISubscription";
 
 export interface IAsyncHandler {
   (req: Request, res: Response, next: NextFunction): Promise<void>;
@@ -81,3 +82,31 @@ export type AccountType = {
   joinedAt: Date;
   image: string;
 };
+
+//sales dashboard types
+
+export type MonthName =
+  | "Jan"
+  | "Feb"
+  | "Mar"
+  | "Apr"
+  | "May"
+  | "Jun"
+  | "Jul"
+  | "Aug"
+  | "Sep"
+  | "Oct"
+  | "Nov"
+  | "Dec";
+
+export type MonthData = {
+  sales: number;
+  revenue: number;
+  newCustomers: number;
+};
+
+export interface UserCount {
+  userCount?: number;
+}
+
+export type SubscriptionAdminType = ISubscription & UserCount;

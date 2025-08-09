@@ -1,7 +1,8 @@
 import { IsInt, IsOptional, IsString } from "class-validator";
 import { Type } from "class-transformer";
+import { BaseQuery } from "../helperDtos/BaseQuery.dto";
 
-export class FetchUserQueryDTO {
+export class FetchUserQueryDTO extends BaseQuery {
   @IsString()
   @Type(() => String)
   search?: string;
@@ -13,12 +14,4 @@ export class FetchUserQueryDTO {
   @IsString()
   @Type(() => String)
   role?: string;
-
-  @IsInt()
-  @Type(() => Number)
-  page?: number;
-
-  @IsInt()
-  @Type(() => Number)
-  itemPerPage?: number;
 }

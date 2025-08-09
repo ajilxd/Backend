@@ -1,4 +1,5 @@
 import { Type, Expose, Transform } from "class-transformer";
+import { BasePaginationDto } from "../helperDtos/BasePagination.dto";
 
 class UserResponseDTO {
   @Expose()
@@ -26,11 +27,8 @@ class UserResponseDTO {
   image!: string;
 }
 
-export class FetchUserResponseDTO {
+export class FetchUserResponseDTO extends BasePaginationDto {
   @Expose()
   @Type(() => UserResponseDTO)
   users!: UserResponseDTO[];
-
-  @Expose()
-  totalPage!: number;
 }

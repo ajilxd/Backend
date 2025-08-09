@@ -1,4 +1,5 @@
 import { Type, Expose, Transform } from "class-transformer";
+import { BasePaginationDto } from "../helperDtos/BasePagination.dto";
 
 class TransactionResponseDTO {
   @Expose()
@@ -8,10 +9,10 @@ class TransactionResponseDTO {
   companyName!: string;
 
   @Expose()
-  status!: "success" | "fail";
+  subscriptionName!: string;
 
   @Expose()
-  subscriptionName!: string;
+  status!: "success" | "fail";
 
   @Expose()
   amount!: number;
@@ -24,13 +25,25 @@ class TransactionResponseDTO {
 
   @Expose()
   transactionType!: string;
+
+  @Expose()
+  billingCycle!: string;
+
+  @Expose()
+  subscriptionId!: string;
+
+  @Expose()
+  stripeCustomerId!: string;
+
+  @Expose()
+  upgrade!: boolean;
+
+  @Expose()
+  isInitial!: string;
 }
 
-export class FetchUserResponseDTO {
+export class FetchTransactionResponseDTO extends BasePaginationDto {
   @Expose()
   @Type(() => TransactionResponseDTO)
   transactions!: TransactionResponseDTO[];
-
-  @Expose()
-  totalPage!: number;
 }

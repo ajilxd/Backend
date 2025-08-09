@@ -4,10 +4,12 @@ import SubscriptionController from "../controllers/implementation/SubscriptionCo
 import { validateBody } from "../middleware/requestValidator";
 import { AdminLoginDto } from "../dtos/admin/admin.dto";
 import { validateQuery } from "../middleware/requestQueryValidator";
-import { FetchUserQueryDTO } from "../dtos/admin/fetchUsersquery.dto";
-import { PatchUserDTO } from "../dtos/admin/patchUserDto";
+import { FetchUserQueryDTO } from "../dtos/admin/FetchUsersquery.dto";
+import { BlockUserDTO } from "../dtos/admin/BlockUserDto";
 import authMiddleware from "../middleware/auth";
-import { FetchTransactionQueryDTO } from "../dtos/admin/fetchTransactionquery.dto";
+import { FetchTransactionQueryDTO } from "../dtos/admin/FetchTransactionquery.dto";
+import { FetchAllSubscribersQueryDTO } from "../dtos/admin/FetchAllSubscribersquery.dto";
+import { FetchAllSubscriptionsqueryDto } from "../dtos/admin/FetchAllSubscriptionsquery.dto";
 
 export const adminRouter = Router();
 
@@ -25,6 +27,7 @@ adminRouter.post(
 adminRouter.get(
   "/subscriptions",
   authMiddleware(["admin"]),
+  validateQuery(FetchAllSubscriptionsqueryDto),
   AdminController.fetchAllSubscriptions
 );
 
@@ -55,7 +58,7 @@ adminRouter.get(
 adminRouter.patch(
   "/users",
   authMiddleware(["admin"]),
-  validateBody(PatchUserDTO),
+  validateBody(BlockUserDTO),
   AdminController.BlockUser
 );
 
@@ -69,6 +72,7 @@ adminRouter.get(
 adminRouter.get(
   "/subscribers",
   authMiddleware(["admin"]),
+  validateQuery(FetchAllSubscribersQueryDTO),
   AdminController.fetchAllSubscribers
 );
 
