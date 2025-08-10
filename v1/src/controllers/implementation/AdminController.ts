@@ -265,7 +265,6 @@ class AdminController implements IAdminController {
       const totalPage = Math.ceil(subscriptions.length / itemPerPage);
       const skip = (page - 1) * itemPerPage;
       const paginatedData = subscriptions.slice(skip, skip + itemPerPage);
-
       const payload = plainToInstance(
         FetchAllSubscriptionsResponseDto,
         { subscriptions: paginatedData, totalPage },

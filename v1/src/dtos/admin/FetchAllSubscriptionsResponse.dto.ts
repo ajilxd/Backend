@@ -45,6 +45,10 @@ class SubscriptionsDto {
     value instanceof Date ? value.toISOString() : value
   )
   createdAt!: string;
+
+  @Expose()
+  @Transform(({ obj }) => obj._id.toString())
+  _id!: string;
 }
 
 export class FetchAllSubscriptionsResponseDto extends BasePaginationDto {
