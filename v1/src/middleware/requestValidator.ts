@@ -2,7 +2,7 @@ import { Request, Response, NextFunction, RequestHandler } from "express";
 import { validate } from "class-validator";
 import { plainToInstance } from "class-transformer";
 
-export const requestValidator = (dtoClass: any): RequestHandler => {
+export const validateBody = (dtoClass: any): RequestHandler => {
   return async (
     req: Request,
     res: Response,
@@ -18,7 +18,7 @@ export const requestValidator = (dtoClass: any): RequestHandler => {
       res.status(400).json({
         status: "error",
         data: null,
-        message: "Validation failed",
+        message: "Body validation failed",
         error: {
           errors: errors.map((err) => ({
             property: err.property,
@@ -26,10 +26,9 @@ export const requestValidator = (dtoClass: any): RequestHandler => {
           })),
         },
       });
-      console.warn("validation errors", errors);
       return;
     }
-
+    req.body = dtoObject;
     next();
   };
 };

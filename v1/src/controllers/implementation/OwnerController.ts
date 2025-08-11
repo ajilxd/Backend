@@ -435,17 +435,26 @@ class OwnerController implements IOwnerController {
   fetchOwnerInvoices = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { id } = req.params;
+      let { page = 1 } = req.query;
+      page = +page;
+      const itemPerPage = 10;
       if (!id) {
         throw new AppError("No owner id found at path params", 400, "warn");
       }
 
-      const invoices = await this.InvoiceService.fetchInvoicesBycustomerId(id);
+      if (Number.isNaN(page)) {
+        throw new AppError("invalid page query", 400);
+      }
 
+      const invoices = await this.InvoiceService.fetchInvoicesBycustomerId(id);
+      const totalPage = Math.ceil(invoices.length / itemPerPage);
+      const skip = (page - 1) * itemPerPage;
+      const paginatedData = invoices.slice(skip, skip + itemPerPage);
       sendResponse(
         res,
         200,
         `Succesfully fetched invoices data for the owner id - ${id}`,
-        invoices
+        { totalPage, invoices: paginatedData }
       );
     }
   );

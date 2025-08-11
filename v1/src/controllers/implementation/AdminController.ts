@@ -1,3 +1,5 @@
+import type { MonthName, SubscriptionAdminType } from "../../types";
+
 import { Request, Response, NextFunction } from "express";
 import { IAdminController } from "../interface/IAdminController";
 import AdminService from "../../services/implementation/AdminService";
@@ -6,17 +8,14 @@ import { IOwnerService } from "../../services/interface/IOwnerService";
 import { IAdminService } from "../../services/interface/IAdminService";
 import { catchAsync } from "../../errors/catchAsyc";
 import { sendResponse } from "../../utils/sendResponse";
-import { logger } from "../../utils/logger";
 import { IManagerService } from "../../services/interface/IManagerService";
 import { IUserService } from "../../services/interface/IUserService";
 import ManagerService from "../../services/implementation/ManagerService";
 import UserService from "../../services/implementation/UserService";
-import { AccountType } from "../../types";
 import AppError from "../../errors/appError";
 import { ITransactionService } from "../../services/interface/ITransactionService";
 import TransactionService from "../../services/implementation/TransactionService";
 import { ITransaction } from "../../entities/ITransaction";
-import { ISubscription } from "../../entities/ISubscription";
 import { ISubscriptionService } from "../../services/interface/ISubscriptionService";
 import SubscriptionService from "../../services/implementation/SubscriptionService";
 import { ISubscriberService } from "../../services/interface/ISubscriberService";
@@ -25,32 +24,19 @@ import { Transaction } from "../../schemas/transactionSchema";
 import { ICompanyService } from "../../services/interface/ICompanyService";
 import CompanyService from "../../services/implementation/CompanyService";
 import { Subscription } from "../../schemas/subscriptionSchema";
-import { Subscriber } from "../../schemas/subscriberSchema";
-type MonthName =
-  | "Jan"
-  | "Feb"
-  | "Mar"
-  | "Apr"
-  | "May"
-  | "Jun"
-  | "Jul"
-  | "Aug"
-  | "Sep"
-  | "Oct"
-  | "Nov"
-  | "Dec";
-
-type MonthData = {
-  sales: number;
-  revenue: number;
-  newCustomers: number;
-};
-
-interface userCount {
-  userCount?: number;
-}
-
-type SubscriptionAdminType = ISubscription & userCount;
+import { successMap, SuccessType } from "../../constants/response.succesful";
+import { FetchUserQueryDTO } from "../../dtos/admin/FetchUsersquery.dto";
+import { plainToInstance } from "class-transformer";
+import { FetchUserResponseDTO } from "../../dtos/admin/FetchUsersResponse.dto";
+import { FetchTransactionQueryDTO } from "../../dtos/admin/FetchTransactionquery.dto";
+import { FetchTransactionResponseDTO } from "../../dtos/admin/FetchTransactionResponse.dto";
+import { FetchAllSubscribersQueryDTO } from "../../dtos/admin/FetchAllSubscribersquery.dto";
+import { SubscriberResponseDto } from "../../dtos/admin/FetchAllSubscribersResponse.dto";
+import { FetchAllSubscriptionsqueryDto } from "../../dtos/admin/FetchAllSubscriptionsquery.dto";
+import { FetchAllSubscriptionsResponseDto } from "../../dtos/admin/FetchAllSubscriptionsResponse.dto";
+import { monthNames, monthsData } from "../../constants";
+import { SalesReportResponseDto } from "../../dtos/admin/SalesDashboardResponse.dto";
+import { FetchDashboardDto } from "../../dtos/admin/FetchDashboardResponse.dto";
 
 class AdminController implements IAdminController {
   constructor(
@@ -69,108 +55,52 @@ class AdminController implements IAdminController {
       const { email, password } = req.body;
       const { accessToken, refreshToken } =
         await this.AdminService.authenticateAdmin(email, password);
-      res.cookie("refreshToken", refreshToken, {
+
+      res.cookie("adminRefreshToken", refreshToken, {
         httpOnly: true,
         sameSite: "lax",
         secure: false,
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-      return res.json({ accessToken });
+      sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        { accessToken }
+      );
     }
   );
 
   logoutAdmin = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      res.cookie("refreshToken", "", {
+      await this.AdminService.clearRefreshToken();
+      res.cookie("adminRefreshToken", "", {
         httpOnly: true,
         expires: new Date(0),
       });
-      await this.AdminService.clearRefreshToken();
-      sendResponse(res, 200, "logout went succesfull");
-    }
-  );
-
-  showOwners = catchAsync(
-    async (req: Request, res: Response, next: NextFunction) => {
-      const page = Number(req.query.page) || 1;
-      const itemPerPage = Number(req.query.itemPerPage) || 5;
-
-      const users = await this.OwnerService.getOwners();
-      const totalPage = Math.ceil(users.length / itemPerPage);
-      logger.info({ length: users.length, totalPage });
-      const skip = (page - 1) * itemPerPage;
-      const paginatedUsers = users.slice(skip, skip + itemPerPage);
-      return sendResponse(res, 200, `Succesfully fetched owners`, {
-        users: paginatedUsers,
-        totalPage,
-      });
-    }
-  );
-
-  toggleOwnerStatus = catchAsync(
-    async (req: Request, res: Response, next: NextFunction) => {
-      let { id } = req.params;
-
-      if (id) {
-        const updatedOwner = await this.OwnerService.updateOwnerStatus(id);
-        res.status(200).json({ status: "success", data: updatedOwner });
-      }
+      sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message
+      );
     }
   );
 
   fetchAllusersHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const search = (req.query.search as string)?.trim().toLowerCase();
-      const status = (req.query.status as string)?.trim().toLowerCase();
-      const role = (req.query.role as string)?.trim().toLowerCase();
-      const page = +(req.query.page as string)?.trim().toLowerCase() || 1;
-      const itemPerPage = +(req.query.itemPerPage as string) || 10;
+      const {
+        search,
+        status,
+        role,
+        page = 1,
+        itemPerPage = 10,
+      } = req.validatedQuery as FetchUserQueryDTO;
 
-      if (!page || !itemPerPage) {
-        throw new AppError(
-          "Bad request - page/itemPerpage missing",
-          400,
-          "warn"
-        );
-      }
-      let owners = await this.OwnerService.getOwners();
-      let managers = await this.ManagerService.getAllManagers();
-      let users = await this.UserService.getUsers();
-      let accounts: AccountType[] = [];
-      owners.map((i) => {
-        accounts.push({
-          role: "owner",
-          name: i.name,
-          image: i.image,
-          userId: "" + i._id,
-          company: i.company.companyName,
-          status: i.isBlocked ? "inactive" : "active",
-          joinedAt: i.createdAt,
-        });
-      });
-      users.map((i) => {
-        accounts.push({
-          role: "user",
-          name: i.name,
-          image: i.image!,
-          userId: "" + i._id,
-          company: i.companyName,
-          status: i.isBlocked ? "inactive" : "active",
-          joinedAt: i.createdAt,
-        });
-      });
-      managers.map((i) => {
-        accounts.push({
-          role: "manager",
-          name: i.name,
-          image: i.image!,
-          userId: "" + i._id,
-          company: i.companyName,
-          status: i.isBlocked ? "inactive" : "active",
-          joinedAt: i.createdAt,
-        });
-      });
-
+      const ownerAccounts = await this.OwnerService.getOwnersAccounts();
+      const managerAccounts = await this.ManagerService.getManagerAccounts();
+      const userAccounts = await this.UserService.getUserAccounts();
+      let accounts = [...ownerAccounts, ...managerAccounts, ...userAccounts];
+      // filters
       if (role && role !== "") {
         accounts = accounts.filter((i) => i.role.toLowerCase() === role);
       }
@@ -187,56 +117,75 @@ class AdminController implements IAdminController {
         accounts = accounts.filter((i) => i.status === status);
       }
 
+      //pagination
       const totalPage = Math.ceil(accounts.length / itemPerPage);
       const skip = (page - 1) * itemPerPage;
       const paginatedAccounts = accounts.slice(skip, skip + itemPerPage);
-      sendResponse(res, 200, "Succesfully fetched all users", {
-        users: paginatedAccounts,
-        totalPage,
-      });
+
+      //response dto
+
+      const payload = plainToInstance(
+        FetchUserResponseDTO,
+        {
+          users: paginatedAccounts,
+          totalPage,
+        },
+        { excludeExtraneousValues: true }
+      );
+      sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        payload
+      );
     }
   );
 
   BlockUser = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { role, id, block } = req.body;
-      if (!role || !id || !("block" in req.body)) {
-        console.log(req.body);
-        throw new AppError(`Bad request - missing fields`, 400, "warn");
+
+      switch (role) {
+        case "user":
+          await this.UserService.updateUser(id, { isBlocked: block });
+          break;
+        case "manager":
+          await this.ManagerService.updateManager(id, { isBlocked: block });
+          break;
+        case "owner":
+          await this.OwnerService.updateOwner(id, { isBlocked: block });
+          break;
+        default:
+          throw new AppError(`Invalid role ${role}`, 400, "warn");
       }
-      if (role === "user") {
-        await this.UserService.updateUser(id, { isBlocked: block });
-      } else if (role === "manager") {
-        await this.ManagerService.updateManager(id, { isBlocked: block });
-      } else if (role === "owner") {
-        await this.OwnerService.updateOwner(id, { isBlocked: block });
-      } else {
-        throw new AppError(`Invalid role ${role}`, 400, "warn");
-      }
+
       sendResponse(
         res,
-        200,
-        `succesfully updated the status of ${role} with  ${id}`
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message
       );
     }
   );
 
   fetchAllTransactions = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const search = (req.query.search as string)?.trim().toLowerCase();
-      const status = (req.query.status as string)?.trim().toLowerCase();
-      const page = +(req.query.page as string) || 1;
-      const itemPerPage = +(req.query.itemPerPage as string) || 10;
+      const {
+        search,
+        status,
+        page = 1,
+        itemPerPage = 10,
+      } = req.validatedQuery as FetchTransactionQueryDTO;
+
       let transactions: ITransaction[] =
         await this.TransactionService.fetchAll();
 
-      if (status && status !== "") {
+      if (status !== "") {
         transactions = transactions.filter(
           (i) => i.status.toLowerCase() === status
         );
       }
 
-      if (search && search !== "") {
+      if (search !== "") {
         transactions = transactions.filter(
           (i) =>
             i.companyName.toLowerCase().includes(search) ||
@@ -246,22 +195,28 @@ class AdminController implements IAdminController {
       const totalPage = Math.ceil(transactions.length / itemPerPage);
       const skip = (page - 1) * itemPerPage;
       const paginatedData = transactions.slice(skip, skip + itemPerPage);
-      sendResponse(res, 200, "Succesfully fetched transactions", {
-        transactions: paginatedData,
-        totalPage,
-      });
+      const payload = plainToInstance(
+        FetchTransactionResponseDTO,
+        {
+          transactions: paginatedData,
+          totalPage,
+        },
+        { excludeExtraneousValues: true }
+      );
+      sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        payload
+      );
     }
   );
 
   fetchAllSubscriptions = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const search = (req.query.search as string)?.trim().toLowerCase();
-      const status = (req.query.status as string)?.trim().toLowerCase();
-      const billingCycle = (req.query.billingCycle as string)
-        ?.trim()
-        .toLowerCase();
-      const page = +(req.query.page as string) || 1;
-      const itemPerPage = +(req.query.itemPerPage as string) || 10;
+      const { search, status, billingCycle, page, itemPerPage } =
+        req.validatedQuery as FetchAllSubscriptionsqueryDto;
+
       const transactions = await this.TransactionService.fetchAll();
 
       let subscriptions: SubscriptionAdminType[] =
@@ -289,19 +244,19 @@ class AdminController implements IAdminController {
         userCount: subMap.get("" + i._id),
       }));
 
-      if (status && status !== "") {
+      if (status !== "") {
         subscriptions = subscriptions.filter((i) => {
           return i.isActive === (status === "active");
         });
       }
 
-      if (search && search !== "") {
+      if (search !== "") {
         subscriptions = subscriptions.filter((i) => {
           return i.name.toLowerCase().includes(search);
         });
       }
 
-      if (billingCycle && billingCycle !== "") {
+      if (billingCycle !== "") {
         subscriptions = subscriptions.filter((i) => {
           return i.billingCycleType === billingCycle;
         });
@@ -310,20 +265,20 @@ class AdminController implements IAdminController {
       const totalPage = Math.ceil(subscriptions.length / itemPerPage);
       const skip = (page - 1) * itemPerPage;
       const paginatedData = subscriptions.slice(skip, skip + itemPerPage);
+      const payload = plainToInstance(
+        FetchAllSubscriptionsResponseDto,
+        { subscriptions: paginatedData, totalPage },
+        { excludeExtraneousValues: true }
+      );
 
-      sendResponse(res, 200, "Successfully fetched subscriptions", {
-        subscriptions: paginatedData,
-        totalPage,
-      });
+      sendResponse(res, 200, "Successfully fetched subscriptions", payload);
     }
   );
 
   fetchAllSubscribers = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const search = (req.query.search as string)?.trim().toLowerCase();
-      const status = (req.query.status as string)?.trim().toLowerCase();
-      const page = +(req.query.page as string) || 1;
-      const itemPerPage = +(req.query.itemPerPage as string) || 10;
+      const { search, status, page, itemPerPage } =
+        req.validatedQuery as FetchAllSubscribersQueryDTO;
       let subscribers = await this.SubscriberService.fetchAll();
 
       if (status && status !== "") {
@@ -343,10 +298,20 @@ class AdminController implements IAdminController {
       const totalPage = Math.ceil(subscribers.length / itemPerPage);
       const skip = (page - 1) * itemPerPage;
       const paginatedData = subscribers.slice(skip, skip + itemPerPage);
-      sendResponse(res, 200, "succesfully fetched all users subscription", {
-        subscribers: paginatedData,
-        totalPage,
-      });
+
+      const payload = plainToInstance(
+        SubscriberResponseDto,
+        { subscribers: paginatedData, totalPage },
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        payload
+      );
     }
   );
 
@@ -384,8 +349,10 @@ class AdminController implements IAdminController {
         },
       ]);
 
-      const startOfYear = new Date(`${2025}-01-01T00:00:00Z`);
-      const endOfYear = new Date(`${2025}-12-31T23:59:59Z`);
+      const startOfYear = new Date(
+        `${new Date().getFullYear()}-01-01T00:00:00Z`
+      );
+      const endOfYear = new Date(`${new Date().getFullYear()}-12-31T23:59:59Z`);
 
       const transactions = await Transaction.aggregate([
         {
@@ -413,37 +380,7 @@ class AdminController implements IAdminController {
         { $sort: { month: 1 } },
       ]);
 
-      const monthsData: Record<MonthName, MonthData> = {
-        Jan: { sales: 0, revenue: 0, newCustomers: 0 },
-        Feb: { sales: 0, revenue: 0, newCustomers: 0 },
-        Mar: { sales: 0, revenue: 0, newCustomers: 0 },
-        Apr: { sales: 0, revenue: 0, newCustomers: 0 },
-        May: { sales: 0, revenue: 0, newCustomers: 0 },
-        Jun: { sales: 0, revenue: 0, newCustomers: 0 },
-        Jul: { sales: 0, revenue: 0, newCustomers: 0 },
-        Aug: { sales: 0, revenue: 0, newCustomers: 0 },
-        Sep: { sales: 0, revenue: 0, newCustomers: 0 },
-        Oct: { sales: 0, revenue: 0, newCustomers: 0 },
-        Nov: { sales: 0, revenue: 0, newCustomers: 0 },
-        Dec: { sales: 0, revenue: 0, newCustomers: 0 },
-      };
-
       transactions.forEach((m) => {
-        const monthNames = [
-          "",
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ];
         const monthName = monthNames[m.month] as MonthName;
         monthsData[monthName].sales = m.sales;
         monthsData[monthName].revenue = m.revenue;
@@ -455,7 +392,7 @@ class AdminController implements IAdminController {
         ...data,
       }));
 
-      const payload = {
+      const data = {
         yearlyReport,
         churnRate,
         lostCustomersCount,
@@ -465,6 +402,10 @@ class AdminController implements IAdminController {
         failedPaymentsCount,
         subscriptionSalesData,
       };
+
+      const payload = plainToInstance(SalesReportResponseDto, data, {
+        excludeExtraneousValues: true,
+      });
       sendResponse(res, 200, "data fetched succesfully", payload);
     }
   );
@@ -492,7 +433,7 @@ class AdminController implements IAdminController {
 
       const topSubscriptions = await Subscription.find().sort().limit(5);
 
-      const payload = {
+      const data = {
         totalRevenue,
         totalCompanies,
         totalSubscriptions,
@@ -500,6 +441,10 @@ class AdminController implements IAdminController {
         latestSubscribers,
         topSubscriptions,
       };
+
+      const payload = plainToInstance(FetchDashboardDto, data, {
+        excludeExtraneousValues: true,
+      });
 
       sendResponse(res, 200, "succesfully fetched the dashboard data", payload);
     }

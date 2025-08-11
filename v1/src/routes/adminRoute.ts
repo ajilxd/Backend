@@ -1,43 +1,89 @@
 import { Router } from "express";
 import AdminController from "../controllers/implementation/AdminController";
 import SubscriptionController from "../controllers/implementation/SubscriptionController";
-import { requestValidator } from "../middleware/requestValidator";
-import { AdminLoginDto } from "../dtos/admin/admin.dto";
+import { validateBody } from "../middleware/requestValidator";
+import { AdminLoginDto } from "../dtos/admin/AdminLogin.dto";
+import { validateQuery } from "../middleware/requestQueryValidator";
+import { FetchUserQueryDTO } from "../dtos/admin/FetchUsersquery.dto";
+import { BlockUserDTO } from "../dtos/admin/BlockUserDto";
+import authMiddleware from "../middleware/auth";
+import { FetchTransactionQueryDTO } from "../dtos/admin/FetchTransactionquery.dto";
+import { FetchAllSubscribersQueryDTO } from "../dtos/admin/FetchAllSubscribersquery.dto";
+import { FetchAllSubscriptionsqueryDto } from "../dtos/admin/FetchAllSubscriptionsquery.dto";
 
 export const adminRouter = Router();
 
 adminRouter.post(
   "/login",
-  requestValidator(AdminLoginDto),
+  validateBody(AdminLoginDto),
   AdminController.loginAdmin
 );
-adminRouter.post("/subscription", SubscriptionController.AddSubscription);
+adminRouter.post(
+  "/subscription",
+  authMiddleware(["admin"]),
+  SubscriptionController.AddSubscription
+);
 
-adminRouter.get("/subscriptions", AdminController.fetchAllSubscriptions);
+adminRouter.get(
+  "/subscriptions",
+  authMiddleware(["admin"]),
+  validateQuery(FetchAllSubscriptionsqueryDto),
+  AdminController.fetchAllSubscriptions
+);
 
-adminRouter.put("/subscription/:id", SubscriptionController.updateSubscription);
+adminRouter.put(
+  "/subscription/:id",
+  authMiddleware(["admin"]),
+  SubscriptionController.updateSubscription
+);
 
 adminRouter.patch(
   "/toggle-subscription-status/:id",
   SubscriptionController.updateSubscriptionStatus
 );
 
-adminRouter.get("/owners", AdminController.showOwners);
-adminRouter.patch(
-  "/toggle-owner-status/:id",
-  AdminController.toggleOwnerStatus
+adminRouter.get(
+  "/logout",
+  authMiddleware(["admin"]),
+  AdminController.logoutAdmin
 );
 
-adminRouter.get("/logout", AdminController.logoutAdmin);
+adminRouter.get(
+  "/users",
+  authMiddleware(["admin"]),
+  validateQuery(FetchUserQueryDTO),
+  AdminController.fetchAllusersHandler
+);
 
-adminRouter.get("/users", AdminController.fetchAllusersHandler);
+adminRouter.patch(
+  "/users",
+  authMiddleware(["admin"]),
+  validateBody(BlockUserDTO),
+  AdminController.BlockUser
+);
 
-adminRouter.patch("/users", AdminController.BlockUser);
+adminRouter.get(
+  "/transactions",
+  authMiddleware(["admin"]),
+  validateQuery(FetchTransactionQueryDTO),
+  AdminController.fetchAllTransactions
+);
 
-adminRouter.get("/transactions", AdminController.fetchAllTransactions);
+adminRouter.get(
+  "/subscribers",
+  authMiddleware(["admin"]),
+  validateQuery(FetchAllSubscribersQueryDTO),
+  AdminController.fetchAllSubscribers
+);
 
-adminRouter.get("/subscribers", AdminController.fetchAllSubscribers);
+adminRouter.get(
+  "/sales-report",
+  authMiddleware(["admin"]),
+  AdminController.fetchSalesReport
+);
 
-adminRouter.get("/sales-report", AdminController.fetchSalesReport);
-
-adminRouter.get("/dashboard", AdminController.fetchDashboard);
+adminRouter.get(
+  "/dashboard",
+  authMiddleware(["admin"]),
+  AdminController.fetchDashboard
+);

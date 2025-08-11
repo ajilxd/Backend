@@ -22,23 +22,23 @@ class AdminService implements IAdminService {
     if (!match) {
       throw new AppError("Invalid credentials", 403, "warn");
     } else {
-      if (!config.ADMIN_ACCESS_SECRET) {
+      if (!config.GENERAL_ACCESS_SECRET) {
         throw new AppError(
-          "ADMIN_ACCESS_SECRET is not defined in the config",
+          "GENERAL_ACCESS_SECRET is not defined in the config",
           500,
           "error"
         );
       }
-      if (!config.ADMIN_REFRESH_SECRET) {
+      if (!config.GENERAL_REFRESH_SECRET) {
         throw new AppError(
-          "ADMIN_REFRESH_SECRET is not defined in the config",
+          "GENERAL_REFRESH_SECRET is not defined in the config",
           500,
           "error"
         );
       }
       const accessToken = jwt.sign(
         { id: adminAccount._id, email: adminAccount.email, role: "admin" },
-        config.ADMIN_ACCESS_SECRET,
+        config.GENERAL_ACCESS_SECRET,
         { expiresIn: "15m" }
       );
       const refreshToken = jwt.sign(
@@ -47,7 +47,7 @@ class AdminService implements IAdminService {
           email: adminAccount.email,
           role: "admin",
         },
-        config.ADMIN_REFRESH_SECRET,
+        config.GENERAL_REFRESH_SECRET,
         {
           expiresIn: "7d",
         }

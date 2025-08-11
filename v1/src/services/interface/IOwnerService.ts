@@ -1,6 +1,6 @@
 import { IOwner } from "../../entities/IOwner";
 import { OwnerQueryType } from "../../repositories/implementations/OwnerRepository";
-import { OwnerSubscriptionDetailsType } from "../../types";
+import { AccountType, OwnerSubscriptionDetailsType } from "../../types";
 
 export interface IOwnerService {
   createOwner(ownerData: any): Promise<IOwner>;
@@ -21,4 +21,5 @@ export interface IOwnerService {
 
   fetchOwnerById(id: string): Promise<IOwner | null>;
   getOwnersQuery(query: OwnerQueryType): Promise<IOwner[]>;
+  getOwnersAccounts(): Promise<AccountType[]>;
 }

@@ -14,7 +14,6 @@ import OwnerRepository from "../repositories/implementations/OwnerRepository";
 import TransactionService from "../services/implementation/TransactionService";
 import OwnerService from "../services/implementation/OwnerService";
 import SubscriberService from "../services/implementation/SubscriberService";
-import InvoiceRepository from "../repositories/implementations/InvoiceRepository";
 import InvoiceService from "../services/implementation/InvoiceService";
 const endpointSecret = config.STRIPE_WEBHOOK_SECRET_KEY;
 

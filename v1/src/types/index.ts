@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from "express";
+import "./types/index";
+import { ISubscription } from "../entities/ISubscription";
 
 export interface IAsyncHandler {
   (req: Request, res: Response, next: NextFunction): Promise<void>;
@@ -11,19 +13,17 @@ export interface ICatchAsync {
     next: NextFunction
   ) => void;
 }
-export interface iconfig<T> {
+export interface iconfig {
   PORT?: number;
-  JWT_SECRET_KEY?: T;
-  MONGODB_URI?: T;
-  NODE_ENV?: T;
+  JWT_SECRET_KEY?: string;
+  MONGODB_URI?: string;
+  NODE_ENV?: string;
   CLIENT_PORT?: number;
-  STRIPE_SECRET_KEY?: T;
-  STRIPE_PUBLIC_KEY?: T;
-  STRIPE_WEBHOOK_SECRET_KEY?: T;
-  ADMIN_ACCESS_SECRET?: T;
-  ADMIN_REFRESH_SECRET?: T;
-  GENERAL_ACCESS_SECRET?: T;
-  GENERAL_REFRESH_SECRET?: T;
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_PUBLIC_KEY?: string;
+  STRIPE_WEBHOOK_SECRET_KEY?: string;
+  GENERAL_ACCESS_SECRET?: string;
+  GENERAL_REFRESH_SECRET?: string;
 }
 
 export type OwnerSubscriptionDetailsType = {
@@ -82,3 +82,31 @@ export type AccountType = {
   joinedAt: Date;
   image: string;
 };
+
+//sales dashboard types
+
+export type MonthName =
+  | "Jan"
+  | "Feb"
+  | "Mar"
+  | "Apr"
+  | "May"
+  | "Jun"
+  | "Jul"
+  | "Aug"
+  | "Sep"
+  | "Oct"
+  | "Nov"
+  | "Dec";
+
+export type MonthData = {
+  sales: number;
+  revenue: number;
+  newCustomers: number;
+};
+
+export interface UserCount {
+  userCount?: number;
+}
+
+export type SubscriptionAdminType = ISubscription & UserCount;

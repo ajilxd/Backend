@@ -1,8 +1,8 @@
 export enum SuccessType {
-  Ok = "Ok", // 200
-  Created = "Created", // 201
-  NoContent = "NoContent", // 204
-  Accepted = "Accepted", // 202
+  Ok = "Ok",
+  Created = "Created",
+  NoContent = "NoContent",
+  Accepted = "Accepted",
 }
 
 export const successMap = {
