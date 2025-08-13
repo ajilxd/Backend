@@ -26,6 +26,11 @@ import { ITaskService } from "../../services/interface/ITaskService";
 import TaskService from "../../services/implementation/TaskService";
 import { IInvoiceService } from "../../services/interface/IInvoiceService";
 import InvoiceService from "../../services/implementation/InvoiceService";
+import { errorMap, ErrorType } from "../../constants/response.failture";
+import { successMap, SuccessType } from "../../constants/response.succesful";
+import { sendCookie } from "../../utils/JWT";
+import { plainToInstance } from "class-transformer";
+import { ownerLoginResponseDto } from "../../dtos/owner/OwnerLoginResponse.dto";
 
 class OwnerController implements IOwnerController {
   constructor(
@@ -42,34 +47,32 @@ class OwnerController implements IOwnerController {
 
   registerOwner = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const existingOwner = await this.OwnerService.findOwnerByEmail(
-        req.body.email
-      );
+      const { name, email } = req.body;
+      const existingOwner = await this.OwnerService.findOwnerByEmail(email);
       const existingManager = await this.ManagerService.fetchManagerByEmail(
-        req.body.email
+        email
       );
+      const existingUser = await this.UserService.findUserByEmail(email);
+      const duplicateMail = existingOwner || existingManager || existingUser;
 
-      const existingUser = existingOwner || existingManager;
-
-      if (existingUser) {
-        throw new AppError("existing email", 409, "warn");
+      if (duplicateMail) {
+        throw new AppError(
+          errorMap[ErrorType.conflict].message,
+          errorMap[ErrorType.conflict].code,
+          "warn"
+        );
       }
-      const formattedEmail = req.body.email.toLowerCase();
-      const owner = await this.OwnerService.createOwner({
-        ...req.body,
-        email: formattedEmail,
-      });
-      if (!owner) {
-        throw new AppError("Failed creating owner in db", 500, "error");
-      }
+      // creating owner
+      const owner = await this.OwnerService.createOwner(req.body);
 
-      const { name, email } = owner;
+      // creating stripe customer with owner email and name
       const stripeCustomerData = await stripeInstance.customers.create({
         email,
         name,
         metadata: { userId: "" + owner._id },
       });
 
+      // updating stripe customer id on owner collection
       await this.OwnerService.updateOwner("" + owner._id, {
         stripe_customer_id: stripeCustomerData.id,
       });
@@ -78,8 +81,8 @@ class OwnerController implements IOwnerController {
 
       return sendResponse(
         res,
-        201,
-        `owner account created succesfully for the user - ${owner.name} with id ${owner._id}`
+        successMap[SuccessType.Created].code,
+        successMap[SuccessType.Created].message
       );
     }
   );
@@ -88,10 +91,14 @@ class OwnerController implements IOwnerController {
     async (req: Request, res: Response, next: NextFunction) => {
       const { email, otp } = req.body;
 
-      const validUser = await otpService.verifyOTP(email, otp);
+      await otpService.verifyOTP(email, otp);
 
-      logger.info(`otp verified for ${validUser.email}`);
-      sendResponse(res, 200, "Otp verification was succesful");
+      logger.info(`otp verified for ${email}`);
+      sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message
+      );
     }
   );
 
@@ -100,16 +107,38 @@ class OwnerController implements IOwnerController {
       const { email, password } = req.body;
       const { accessToken, refreshToken, account } =
         await this.OwnerService.authenticateOwner(email, password);
-      res
-        .status(200)
-        .cookie("ownerRefreshToken", refreshToken, {
-          httpOnly: true,
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-          secure: false,
-          sameSite: "lax",
-          path: "/",
-        })
-        .json({ accessToken, data: account });
+      const subscription = await this.SubscriberService.findByCustomerId(
+        "" + account._id
+      );
+      console.log("owner account", account);
+      console.log("owner subscription", subscription);
+      const payload = plainToInstance(
+        ownerLoginResponseDto,
+        {
+          ...account.toObject(),
+          subscription,
+          accessToken,
+        },
+        { excludeExtraneousValues: true }
+      );
+
+      // res
+      //   .status(200)
+      //   .cookie("ownerRefreshToken", refreshToken, {
+      //     httpOnly: true,
+      //     maxAge: 7 * 24 * 60 * 60 * 1000,
+      //     secure: false,
+      //     sameSite: "lax",
+      //     path: "/",
+      //   })
+      //   .json({ accessToken, data: account });
+      sendCookie(res, "owner", refreshToken);
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        payload
+      );
     }
   );
 

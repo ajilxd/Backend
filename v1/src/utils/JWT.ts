@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import config from "../config";
 import AppError from "../errors/appError";
+import { Response } from "express";
 
 export enum UserRole {
   Admin = "admin",
@@ -35,4 +36,18 @@ export function verifyRefreshToken(type: UserRole, token: string) {
   } catch (err) {
     return null;
   }
+}
+
+export function sendCookie(
+  res: Response,
+  role: "owner" | "manager" | "user" | "admin",
+  refreshToken: string
+) {
+  res.cookie(`${role}RefreshToken`, refreshToken, {
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    secure: config.NODE_ENV === "production",
+    sameSite: config.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  });
 }

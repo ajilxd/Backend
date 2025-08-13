@@ -110,3 +110,11 @@ export interface UserCount {
 }
 
 export type SubscriptionAdminType = ISubscription & UserCount;
+
+// owner types
+
+export type OwnerRegisterPayload = {
+  email: string;
+  password: string;
+  name: string;
+};

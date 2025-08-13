@@ -2,19 +2,45 @@ import { Router } from "express";
 import OwnerController from "../controllers/implementation/OwnerController";
 import CompanyController from "../controllers/implementation/CompanyController";
 import authMiddleware from "../middleware/auth";
+import { validateBody } from "../middleware/requestValidator";
+import { OwnerLoginDto } from "../dtos/owner/OwnerLogin.dto";
+import { OwnerOtpVerfication } from "../dtos/owner/OwnerOtpVerification.dto";
+import { ownerSendOtp } from "../dtos/owner/OwnerSendOtp.dto";
+import { OwnerGoogleLogin } from "../dtos/owner/OwnerGoogleLogin.dto";
+import { OwnerRegister } from "../dtos/owner/OwnerRegister.dto";
 export const ownerRouter = Router();
 
 ownerRouter.post(
   "/register",
-
+  validateBody(OwnerRegister),
   OwnerController.registerOwner
 );
-ownerRouter.post("/login", OwnerController.loginUser);
+ownerRouter.post(
+  "/login",
+  validateBody(OwnerLoginDto),
+  OwnerController.loginUser
+);
 ownerRouter.get("/logout", OwnerController.logoutUser);
-ownerRouter.post("/verify-otp", OwnerController.AuthenticateOtp);
-ownerRouter.post("/request-otp", OwnerController.requestOtpHandler);
-ownerRouter.post("/resend-otp", OwnerController.resendOtphandler);
-ownerRouter.post("/google", OwnerController.handleGoogleClick);
+ownerRouter.post(
+  "/verify-otp",
+  validateBody(OwnerOtpVerfication),
+  OwnerController.AuthenticateOtp
+);
+ownerRouter.post(
+  "/request-otp",
+  validateBody(ownerSendOtp),
+  OwnerController.requestOtpHandler
+);
+ownerRouter.post(
+  "/resend-otp",
+  validateBody(ownerSendOtp),
+  OwnerController.resendOtphandler
+);
+ownerRouter.post(
+  "/google",
+  validateBody(OwnerGoogleLogin),
+  OwnerController.handleGoogleClick
+);
 ownerRouter.post("/forget-password", OwnerController.forgotPasswordHandler);
 ownerRouter.post("/reset-password", OwnerController.resetPasswordHandler);
 
