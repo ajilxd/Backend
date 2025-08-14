@@ -5,9 +5,14 @@ import authMiddleware from "../middleware/auth";
 import { validateBody } from "../middleware/requestValidator";
 import { OwnerLoginDto } from "../dtos/owner/OwnerLogin.dto";
 import { OwnerOtpVerfication } from "../dtos/owner/OwnerOtpVerification.dto";
-import { ownerSendOtp } from "../dtos/owner/OwnerSendOtp.dto";
+import { OwnerSendOtp } from "../dtos/owner/OwnerSendOtp.dto";
 import { OwnerGoogleLogin } from "../dtos/owner/OwnerGoogleLogin.dto";
 import { OwnerRegister } from "../dtos/owner/OwnerRegister.dto";
+import { OwnerForgetpassword } from "../dtos/owner/OwnerForgetPassword.dto";
+import { OwnerResetPassword } from "../dtos/owner/OwnerResetPassword.dto";
+import { OwnerAddManager } from "../dtos/owner/OwnerAddManager.dto";
+import { OwnerGetByFieldquery } from "../dtos/owner/OwnerGetByFieldquery.dto";
+import { validateQuery } from "../middleware/requestQueryValidator";
 export const ownerRouter = Router();
 
 ownerRouter.post(
@@ -24,16 +29,16 @@ ownerRouter.get("/logout", OwnerController.logoutUser);
 ownerRouter.post(
   "/verify-otp",
   validateBody(OwnerOtpVerfication),
-  OwnerController.AuthenticateOtp
+  OwnerController.authenticateOtp
 );
 ownerRouter.post(
   "/request-otp",
-  validateBody(ownerSendOtp),
+  validateBody(OwnerSendOtp),
   OwnerController.requestOtpHandler
 );
 ownerRouter.post(
   "/resend-otp",
-  validateBody(ownerSendOtp),
+  validateBody(OwnerSendOtp),
   OwnerController.resendOtphandler
 );
 ownerRouter.post(
@@ -41,12 +46,21 @@ ownerRouter.post(
   validateBody(OwnerGoogleLogin),
   OwnerController.handleGoogleClick
 );
-ownerRouter.post("/forget-password", OwnerController.forgotPasswordHandler);
-ownerRouter.post("/reset-password", OwnerController.resetPasswordHandler);
+ownerRouter.post(
+  "/forget-password",
+  validateBody(OwnerForgetpassword),
+  OwnerController.forgotPasswordHandler
+);
+ownerRouter.post(
+  "/reset-password",
+  validateBody(OwnerResetPassword),
+  OwnerController.resetPasswordHandler
+);
 
 ownerRouter.get(
   "/",
   authMiddleware(["owner"]),
+  validateQuery(OwnerGetByFieldquery),
   OwnerController.getOwnersByFieldHandler
 );
 
@@ -58,6 +72,7 @@ ownerRouter.put(
 ownerRouter.post(
   "/managers",
   authMiddleware(["owner"]),
+  validateBody(OwnerAddManager),
   OwnerController.addManagerHandler
 );
 ownerRouter.get(

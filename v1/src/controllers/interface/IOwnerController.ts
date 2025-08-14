@@ -7,7 +7,7 @@ export interface IOwnerController {
     next: NextFunction
   ): Promise<void> | void;
 
-  AuthenticateOtp(
+  authenticateOtp(
     req: Request,
     res: Response,
     next: NextFunction

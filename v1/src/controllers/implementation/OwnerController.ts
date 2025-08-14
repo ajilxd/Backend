@@ -28,9 +28,10 @@ import { IInvoiceService } from "../../services/interface/IInvoiceService";
 import InvoiceService from "../../services/implementation/InvoiceService";
 import { errorMap, ErrorType } from "../../constants/response.failture";
 import { successMap, SuccessType } from "../../constants/response.succesful";
-import { sendCookie } from "../../utils/JWT";
+import { clearCookie, sendCookie } from "../../utils/JWT";
 import { plainToInstance } from "class-transformer";
 import { ownerLoginResponseDto } from "../../dtos/owner/OwnerLoginResponse.dto";
+import { OwnerGetByFieldResponse } from "../../dtos/owner/OwnerGetByFieldResponse.dto";
 
 class OwnerController implements IOwnerController {
   constructor(
@@ -62,17 +63,15 @@ class OwnerController implements IOwnerController {
           "warn"
         );
       }
-      // creating owner
+
       const owner = await this.OwnerService.createOwner(req.body);
 
-      // creating stripe customer with owner email and name
       const stripeCustomerData = await stripeInstance.customers.create({
         email,
         name,
         metadata: { userId: "" + owner._id },
       });
 
-      // updating stripe customer id on owner collection
       await this.OwnerService.updateOwner("" + owner._id, {
         stripe_customer_id: stripeCustomerData.id,
       });
@@ -87,13 +86,12 @@ class OwnerController implements IOwnerController {
     }
   );
 
-  AuthenticateOtp = catchAsync(
+  authenticateOtp = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { email, otp } = req.body;
 
       await otpService.verifyOTP(email, otp);
 
-      logger.info(`otp verified for ${email}`);
       sendResponse(
         res,
         successMap[SuccessType.Ok].code,
@@ -110,8 +108,7 @@ class OwnerController implements IOwnerController {
       const subscription = await this.SubscriberService.findByCustomerId(
         "" + account._id
       );
-      console.log("owner account", account);
-      console.log("owner subscription", subscription);
+
       const payload = plainToInstance(
         ownerLoginResponseDto,
         {
@@ -122,16 +119,6 @@ class OwnerController implements IOwnerController {
         { excludeExtraneousValues: true }
       );
 
-      // res
-      //   .status(200)
-      //   .cookie("ownerRefreshToken", refreshToken, {
-      //     httpOnly: true,
-      //     maxAge: 7 * 24 * 60 * 60 * 1000,
-      //     secure: false,
-      //     sameSite: "lax",
-      //     path: "/",
-      //   })
-      //   .json({ accessToken, data: account });
       sendCookie(res, "owner", refreshToken);
       return sendResponse(
         res,
@@ -144,14 +131,13 @@ class OwnerController implements IOwnerController {
 
   logoutUser = catchAsync(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-      res.clearCookie("ownerRefreshToken", {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        path: "/",
-      });
+      clearCookie(res, "owner");
 
-      return sendResponse(res, 201, "Logout went succesful - owner");
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message
+      );
     }
   );
 
@@ -160,7 +146,11 @@ class OwnerController implements IOwnerController {
       const { email } = req.body;
 
       await otpService.sendOTP(email);
-      return sendResponse(res, 201, `Otp has been send to your email ${email}`);
+      return sendResponse(
+        res,
+        successMap[SuccessType.Created].code,
+        successMap[SuccessType.Created].message
+      );
     }
   );
 
@@ -172,8 +162,8 @@ class OwnerController implements IOwnerController {
       await otpService.sendOTP(email);
       return sendResponse(
         res,
-        201,
-        `Otp has be resended to your email ${email}`
+        successMap[SuccessType.Created].code,
+        successMap[SuccessType.Created].message
       );
     }
   );
@@ -181,30 +171,41 @@ class OwnerController implements IOwnerController {
   handleGoogleClick = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { email } = req.body;
-      const existingUser = await this.OwnerService.findOwnerByEmail(email);
-      if (existingUser) {
-        const accountData = existingUser;
-
+      const account = await this.OwnerService.findOwnerByEmail(email);
+      if (account) {
         const { accessToken, refreshToken } =
           await this.OwnerService.authenticateOwner(email, "", true);
-        if (accountData.isBlocked) {
+        if (account.isBlocked) {
           throw new AppError(
-            `Your owner account(${accountData.name}) is disabled`,
-            403,
+            errorMap[ErrorType.Forbidden].message,
+            errorMap[ErrorType.Forbidden].code,
             "warn"
           );
         }
 
-        res.status(200).cookie("ownerRefreshToken", refreshToken, {
-          httpOnly: true,
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-          sameSite: "lax",
-          secure: false,
-        });
-        return res.json({ accessToken, data: accountData });
+        const subscription = await this.SubscriberService.findByCustomerId(
+          "" + account._id
+        );
+
+        const payload = plainToInstance(
+          ownerLoginResponseDto,
+          {
+            ...account.toObject(),
+            subscription,
+            accessToken,
+          },
+          { excludeExtraneousValues: true }
+        );
+        sendCookie(res, "owner", refreshToken);
+        sendResponse(
+          res,
+          successMap[SuccessType.Ok].code,
+          successMap[SuccessType.Ok].message,
+          payload
+        );
       } else {
         const generatedPassword = String(Math.random().toString(36).slice(-8));
-        const accountData: Partial<IOwner> = {
+        const newAccount: Partial<IOwner> = {
           name: "Guest",
           email: req.body.email,
           password: generatedPassword,
@@ -212,31 +213,37 @@ class OwnerController implements IOwnerController {
           isBlocked: false,
         };
 
-        const owner = await this.OwnerService.createOwner(accountData);
+        let account = await this.OwnerService.createOwner(newAccount);
 
-        const { name, email } = owner;
+        const { name, email } = account;
         const cd = await stripeInstance.customers.create({
           email,
           name,
-          metadata: { userId: "" + owner._id },
+          metadata: { userId: "" + account._id },
         });
 
-        const updatedOwner = await this.OwnerService.updateOwner(
-          "" + owner._id,
-          {
-            stripe_customer_id: cd.id,
-          }
-        );
+        account = await this.OwnerService.updateOwner("" + account._id, {
+          stripe_customer_id: cd.id,
+        });
 
         const { accessToken, refreshToken } =
           await this.OwnerService.authenticateOwner(email, "", true);
-        res.cookie("ownerRefreshToken", refreshToken, {
-          httpOnly: true,
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-          sameSite: "lax",
-          secure: false,
-        });
-        return res.json({ accessToken, data: updatedOwner });
+        const payload = plainToInstance(
+          ownerLoginResponseDto,
+          {
+            ...account.toObject(),
+            subscription: null,
+            accessToken,
+          },
+          { excludeExtraneousValues: true }
+        );
+        sendCookie(res, "owner", refreshToken);
+        sendResponse(
+          res,
+          successMap[SuccessType.Ok].code,
+          successMap[SuccessType.Ok].message,
+          payload
+        );
       }
     }
   );
@@ -244,25 +251,15 @@ class OwnerController implements IOwnerController {
   resetPasswordHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { email, password, token } = req.body;
-
-      const validToken = await this.TokenService.verifyToken(email, token);
-
-      if (validToken) {
-        await this.OwnerService.resetPassword(validToken.email, password);
-        logger.info("Password reset succesfully for ", email);
-        await this.TokenService.deleteToken(email);
-        return sendResponse(
-          res,
-          200,
-          `password has been succesfully reset - ${email}`
-        );
-      } else {
-        return sendResponse(
-          res,
-          401,
-          "Invalid link or expired link - you have used an expired or invalid password link"
-        );
-      }
+      await this.TokenService.verifyToken(email, token);
+      await this.OwnerService.resetPassword(email, password);
+      await this.TokenService.deleteToken(email);
+      logger.info("Password reset succesfully for ", email);
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message
+      );
     }
   );
 
@@ -273,13 +270,17 @@ class OwnerController implements IOwnerController {
       const user = await this.OwnerService.findOwnerByEmail(email);
       if (!user) {
         throw new AppError(
-          `No owner account found with this email ${email}`,
-          404,
+          errorMap[ErrorType.NotFound].message,
+          errorMap[ErrorType.NotFound].code,
           "warn"
         );
       }
       await this.TokenService.createPasswordToken(email);
-      return sendResponse(res, 200, `Password link has been sent your email`);
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message
+      );
     }
   );
 
@@ -451,7 +452,7 @@ class OwnerController implements IOwnerController {
         canceled_at: new Date(stripeSubscriptionData.canceled_at! * 1000),
         features: subscriptionData.features,
       };
-      console.log("result form owner sub", result);
+
       return sendResponse(
         res,
         200,
@@ -490,13 +491,14 @@ class OwnerController implements IOwnerController {
 
   getOwnersByFieldHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      let { field, value } = req.query;
-      if (typeof field !== "string" || typeof value !== "string") {
-        throw new AppError("Bad request", 400);
-      }
+      let { field, value } = req.validatedQuery;
+
       const allowedFields = ["_id"];
       if (!allowedFields.includes("" + field)) {
-        throw new AppError("Invalid query", 400);
+        throw new AppError(
+          "Invalid query",
+          errorMap[ErrorType.BadRequest].code
+        );
       }
 
       const query: Record<string, mongoose.Types.ObjectId> = {};
@@ -504,11 +506,27 @@ class OwnerController implements IOwnerController {
 
       const result = await this.OwnerService.getOwnersQuery(query);
 
-      if (result) {
-        return sendResponse(res, 200, "fetched owners succesfully", result);
-      } else {
-        throw new AppError("No users found", 404, "warn");
+      if (!result.length) {
+        throw new AppError(
+          errorMap[ErrorType.NotFound].message,
+          errorMap[ErrorType.NotFound].code
+        );
       }
+
+      const payload = plainToInstance(
+        OwnerGetByFieldResponse,
+        { ...result[0].toObject(), role: "owner" },
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        payload
+      );
     }
   );
 

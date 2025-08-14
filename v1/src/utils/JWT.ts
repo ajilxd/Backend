@@ -51,3 +51,15 @@ export function sendCookie(
     path: "/",
   });
 }
+
+export function clearCookie(
+  res: Response,
+  role: "owner" | "manager" | "user" | "admin"
+) {
+  res.clearCookie(`${role}RefreshToken`, {
+    httpOnly: true,
+    secure: config.NODE_ENV === "production",
+    sameSite: config.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  });
+}
