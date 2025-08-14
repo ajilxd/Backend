@@ -10,4 +10,5 @@ export interface ISubscriptionService {
     subscriptionData: Partial<ISubscription>
   ): Promise<ISubscription>;
   findSubscriptionById(id: string): Promise<ISubscription>;
+  toggleSubscriptionStatus(id: string): Promise<ISubscription>;
 }

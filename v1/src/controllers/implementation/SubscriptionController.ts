@@ -7,6 +7,8 @@ import { Features, ISubscription } from "../../entities/ISubscription";
 import AppError from "../../errors/appError";
 import { sendResponse } from "../../utils/sendResponse";
 import { catchAsync } from "../../errors/catchAsyc";
+import { errorMap, ErrorType } from "../../constants/response.failture";
+import { successMap, SuccessType } from "../../constants/response.succesful";
 
 class SubscriptionController implements ISubscriptionController {
   private SubscriptionService: ISubscriptionService;
@@ -15,17 +17,19 @@ class SubscriptionController implements ISubscriptionController {
   }
   AddSubscription = catchAsync(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-      const chatAllowed = !!req.body.allowChatWithSpace;
-      const meetingAllowed = !!req.body.allowMeetingWithSpace;
-      const yearlyDiscountPercentage = +req.body.yearlyDiscountPercentage;
-      const spaceCount = +req.body.numberOfSpaces;
-      const managerCount = +req.body.numberOfManagers;
-      const userCount = +req.body.numberOfUsers;
-      const description = req.body.description;
-      const yearlyAmount = +req.body.yearlyAmount;
-      const monthlyAmount = +req.body.monthlyAmount;
-      const billingCycleType = req.body.billingCycleType;
-      const name = req.body.name;
+      const {
+        allowChat,
+        allowMeeting,
+        spaceCount,
+        managerCount,
+        userCount,
+        description,
+        yearlyAmount,
+        monthlyAmount,
+        name,
+        billingCycleType,
+        yearlyDiscountPercentage,
+      } = req.body;
 
       const features: Features = {
         chat: false,
@@ -36,14 +40,6 @@ class SubscriptionController implements ISubscriptionController {
       };
       const subscription: Partial<ISubscription> = { name, description };
 
-      const existingSubscriptionName = await (
-        await this.SubscriptionService.fetchSubscriptions()
-      ).find((i) => i.name === name);
-
-      if (existingSubscriptionName) {
-        throw new AppError("Duplicate subscription name", 409, "warn");
-      }
-
       const stripe_product_id = await stripeInstance.products
         .create({
           name,
@@ -53,7 +49,7 @@ class SubscriptionController implements ISubscriptionController {
         .catch((err) => {
           throw new AppError(
             "failed to create stripe price for month billingCycle " + err,
-            500
+            errorMap[ErrorType.ServerError].code
           );
         });
 
@@ -75,7 +71,7 @@ class SubscriptionController implements ISubscriptionController {
             .catch((err) => {
               throw new AppError(
                 "failed to create stripe price for month billingCycle " + err,
-                500
+                errorMap[ErrorType.ServerError].code
               );
             });
           break;
@@ -94,7 +90,7 @@ class SubscriptionController implements ISubscriptionController {
             .catch((err) => {
               throw new AppError(
                 "failed to create stripe price for year billingCycle " + err,
-                500
+                errorMap[ErrorType.ServerError].code
               );
             });
           break;
@@ -115,7 +111,7 @@ class SubscriptionController implements ISubscriptionController {
             .catch((err) => {
               throw new AppError(
                 "failed to create stripe price for year billingCycle " + err,
-                500
+                errorMap[ErrorType.ServerError].code
               );
             });
           subscription.stripe_monthly_price_id = await stripeInstance.prices
@@ -131,30 +127,16 @@ class SubscriptionController implements ISubscriptionController {
             .catch((err) => {
               throw new AppError(
                 "failed to create stripe price for year billingCycle " + err,
-                500
+                errorMap[ErrorType.ServerError].code
               );
             });
       }
 
-      if (spaceCount) {
-        features.spaces = +spaceCount;
-      }
-
-      if (managerCount) {
-        features.managerCount = managerCount;
-      }
-
-      if (userCount) {
-        features.userCount = userCount;
-      }
-
-      if (chatAllowed) {
-        features.chat = chatAllowed;
-      }
-
-      if (meetingAllowed) {
-        features.meeting = meetingAllowed;
-      }
+      features.spaces = spaceCount;
+      features.managerCount = managerCount;
+      features.userCount = userCount;
+      features.chat = allowChat;
+      features.meeting = allowMeeting;
 
       subscription.features = features;
       subscription.stripe_product_id = stripe_product_id;
@@ -162,70 +144,42 @@ class SubscriptionController implements ISubscriptionController {
         subscription.monthlyAmount ||
         Math.ceil(subscription.yearlyAmount! && subscription.yearlyAmount / 12);
 
-      const result = await this.SubscriptionService.createSubscription(
-        subscription
-      );
+      await this.SubscriptionService.createSubscription(subscription);
 
       sendResponse(
         res,
-        201,
-        `subscription with ${name} created succesfully`,
-        result
+        successMap[SuccessType.Created].code,
+        successMap[SuccessType.Created].message
       );
-    }
-  );
-
-  getSubscriptions = catchAsync(
-    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-      const data = await this.SubscriptionService.fetchSubscriptions();
-      if (data.length > 0) {
-        return sendResponse(res, 201, "subscription fetched successfuly", data);
-      } else {
-        return sendResponse(res, 204, "No data ");
-      }
     }
   );
 
   updateSubscriptionStatus = catchAsync(
     async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-      const existingSubscription =
-        await this.SubscriptionService.findSubscriptionById(req.params.id);
-      const updated = await this.SubscriptionService.updateSubscription(
-        req.params.id,
-        { isActive: !existingSubscription.isActive }
+      const updated = await this.SubscriptionService.toggleSubscriptionStatus(
+        req.params.id
       );
-      if (!updated) {
-        throw new AppError("error updating subscription status", 500, "error");
-      }
-      return sendResponse(
+
+      sendResponse(
         res,
-        200,
-        `updation on subscription went succesful for ${req.params.id}`,
-        updated
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        updated.name
       );
     }
   );
 
   updateSubscription = catchAsync(
     async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-      const subId = req.params.id;
-      const existingSubscription =
-        await this.SubscriptionService.findSubscriptionById(subId);
-      if (!existingSubscription) {
-        throw new AppError("No subscription found", 404, "warn");
-      }
-      const data = req.body;
-      console.log("req body at update subscripiton", data);
-
       const updated = await this.SubscriptionService.updateSubscription(
-        subId,
-        data
+        req.params.id,
+        req.body
       );
       return sendResponse(
         res,
-        200,
-        `updation on subscription wnet succesful for ${req.params.id}`,
-        updated
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        updated.name
       );
     }
   );

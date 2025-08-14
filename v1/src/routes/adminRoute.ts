@@ -10,6 +10,8 @@ import authMiddleware from "../middleware/auth";
 import { FetchTransactionQueryDTO } from "../dtos/admin/FetchTransactionquery.dto";
 import { FetchAllSubscribersQueryDTO } from "../dtos/admin/FetchAllSubscribersquery.dto";
 import { FetchAllSubscriptionsqueryDto } from "../dtos/admin/FetchAllSubscriptionsquery.dto";
+import { AddSubscription } from "../dtos/subscription/AddSubscription.dto";
+import { UpdateSubscription } from "../dtos/subscription/UpdateSubscription.dto";
 
 export const adminRouter = Router();
 
@@ -21,6 +23,7 @@ adminRouter.post(
 adminRouter.post(
   "/subscription",
   authMiddleware(["admin"]),
+  validateBody(AddSubscription),
   SubscriptionController.AddSubscription
 );
 
@@ -34,11 +37,13 @@ adminRouter.get(
 adminRouter.put(
   "/subscription/:id",
   authMiddleware(["admin"]),
+  validateBody(UpdateSubscription),
   SubscriptionController.updateSubscription
 );
 
 adminRouter.patch(
   "/toggle-subscription-status/:id",
+  authMiddleware(["admin"]),
   SubscriptionController.updateSubscriptionStatus
 );
 

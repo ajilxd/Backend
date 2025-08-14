@@ -7,12 +7,6 @@ export interface ISubscriptionController {
     next: NextFunction
   ): Promise<void> | void;
 
-  getSubscriptions(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> | void;
-
   updateSubscription: (
     req: Request,
     res: Response,
