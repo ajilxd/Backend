@@ -1,14 +1,14 @@
 import { Type } from "class-transformer";
-import { IsNumber, IsString } from "class-validator";
+import { IsBoolean, IsNumber, IsString, ValidateNested } from "class-validator";
 
 class FeatureDto {
   @IsNumber()
   managerCount!: number;
   @IsNumber()
   userCount!: number;
-  @IsNumber()
+  @IsBoolean()
   chat!: boolean;
-  @IsNumber()
+  @IsBoolean()
   meeting!: boolean;
   @IsNumber()
   spaces!: number;
@@ -21,6 +21,7 @@ export class UpdateSubscription {
   @IsString()
   description!: string;
 
+  @ValidateNested()
   @Type(() => FeatureDto)
   features!: FeatureDto;
 }

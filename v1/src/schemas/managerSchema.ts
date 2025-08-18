@@ -16,7 +16,7 @@ const ManagerSchema: Schema<IManager> = new Schema(
       default: UserRole.Manager,
     },
     refreshToken: { type: String, required: false },
-    companyId: { type: Schema.Types.ObjectId, require: true },
+    companyId: { type: Schema.Types.ObjectId, require: true }, 
     companyName: { type: String, required: false },
     bio: { type: String, required: false },
   },

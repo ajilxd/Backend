@@ -13,6 +13,7 @@ import { OwnerResetPassword } from "../dtos/owner/OwnerResetPassword.dto";
 import { OwnerAddManager } from "../dtos/owner/OwnerAddManager.dto";
 import { OwnerGetByFieldquery } from "../dtos/owner/OwnerGetByFieldquery.dto";
 import { validateQuery } from "../middleware/requestQueryValidator";
+import { CreateCompany } from "../dtos/company/CreateCompany.dto";
 export const ownerRouter = Router();
 
 ownerRouter.post(
@@ -34,12 +35,12 @@ ownerRouter.post(
 ownerRouter.post(
   "/request-otp",
   validateBody(OwnerSendOtp),
-  OwnerController.requestOtpHandler
+  OwnerController.requestOtp
 );
 ownerRouter.post(
   "/resend-otp",
   validateBody(OwnerSendOtp),
-  OwnerController.resendOtphandler
+  OwnerController.resendOtp
 );
 ownerRouter.post(
   "/google",
@@ -49,19 +50,19 @@ ownerRouter.post(
 ownerRouter.post(
   "/forget-password",
   validateBody(OwnerForgetpassword),
-  OwnerController.forgotPasswordHandler
+  OwnerController.forgotPassword
 );
 ownerRouter.post(
   "/reset-password",
   validateBody(OwnerResetPassword),
-  OwnerController.resetPasswordHandler
+  OwnerController.resetPassword
 );
 
 ownerRouter.get(
   "/",
   authMiddleware(["owner"]),
   validateQuery(OwnerGetByFieldquery),
-  OwnerController.getOwnersByFieldHandler
+  OwnerController.getOwnersByField
 );
 
 ownerRouter.put(
@@ -73,33 +74,33 @@ ownerRouter.post(
   "/managers",
   authMiddleware(["owner"]),
   validateBody(OwnerAddManager),
-  OwnerController.addManagerHandler
+  OwnerController.addManager
 );
 ownerRouter.get(
-  "/managers/:id",
+  "/managers",
   authMiddleware(["owner"]),
-  OwnerController.getAllManagersHandler
+  OwnerController.getAllManagers
 );
 ownerRouter.patch(
   "/managers/:id",
   authMiddleware(["owner"]),
-  OwnerController.toggleManagerStatusHandler
+  OwnerController.toggleManagerStatus
 );
 
 ownerRouter.put(
   "/manager",
   authMiddleware(["owner"]),
-  OwnerController.editManagerHandler
+  OwnerController.editManager
 );
 ownerRouter.get(
   "/subscriptions",
   authMiddleware(["owner"]),
-  OwnerController.showSubscriptionsHandler
+  OwnerController.showSubscriptions
 );
 ownerRouter.get(
   "/owners/:id",
   authMiddleware(["owner"]),
-  OwnerController.showOwnersHandler
+  OwnerController.showOwners
 );
 ownerRouter.get(
   "/subscription/:id",
@@ -111,20 +112,23 @@ ownerRouter.get(
   authMiddleware(["owner"]),
   OwnerController.fetchOwnerInvoices
 );
+
+// company
 ownerRouter.get(
   "/company/:id",
   authMiddleware(["owner"]),
-  CompanyController.getCompanyHandler
+  CompanyController.getCompany
 );
 ownerRouter.put(
   "/company",
   authMiddleware(["owner"]),
-  CompanyController.updateCompanyHandler
+  CompanyController.updateCompany
 );
 ownerRouter.post(
   "/company",
   authMiddleware(["owner"]),
-  CompanyController.registerCompanyHandler
+  validateBody(CreateCompany),
+  CompanyController.registerCompany
 );
 
-ownerRouter.get("/dashboard", OwnerController.fetchDashboardHandler);
+ownerRouter.get("/dashboard", OwnerController.fetchDashboard);

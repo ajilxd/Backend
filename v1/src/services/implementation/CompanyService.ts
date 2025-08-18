@@ -57,27 +57,25 @@ class CompanyService implements ICompanyService {
     }
   }
 
-  async updateCompany(data: Partial<ICompany>): Promise<ICompany> {
-    const { ownerId } = data;
+  async updateCompany(
+    data: Partial<ICompany>,
+    ownerId: string
+  ): Promise<ICompany> {
+    const existing = await this.findCompanyByOwnerId(ownerId);
+    if (!existing) {
+      throw new AppError(`No company found with this Id ${ownerId}`, 404);
+    }
 
-    if (!ownerId) {
-      throw new AppError(
-        "Owner id is required for updating the Company document",
-        400,
-        "warn"
-      );
-    }
-    const validOwnerId = await this.ownerrepository.findOne({ _id: ownerId });
-    if (!validOwnerId) {
-      throw new AppError(`No owner Account found with this Id ${ownerId}`, 404);
-    }
-    const updatedDoc = await this.companyrepository.update("" + data._id, data);
+    const updatedDoc = await this.companyrepository.update(
+      "" + existing._id,
+      data
+    );
 
     if (updatedDoc) {
       return updatedDoc;
     } else {
       throw new AppError(
-        `Failed to update company document - ownerId (${ownerId}) companyId)`,
+        errorMap[ErrorType.ServerError].message,
         errorMap[ErrorType.ServerError].code
       );
     }
@@ -100,12 +98,7 @@ class CompanyService implements ICompanyService {
   }
 
   async findAllCompanies(): Promise<ICompany[]> {
-    const companies = await this.companyrepository.findAll();
-    if (companies.length) {
-      return companies;
-    } else {
-      return [];
-    }
+    return await this.companyrepository.findAll();
   }
 
   async findAllMembersByCompanyId(companyId: string): Promise<CompanyMember[]> {

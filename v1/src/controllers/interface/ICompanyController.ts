@@ -1,25 +1,25 @@
 import { NextFunction, Request, Response } from "express";
 
 export interface ICompanyController {
-  registerCompanyHandler(
+  registerCompany(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> | void;
 
-  updateCompanyHandler(
+  updateCompany(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> | void;
 
-  fetchAllCompaniesHandler(
+  fetchAllCompanies(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> | void;
 
-  getCompanyHandler(
+  getCompany(
     req: Request,
     res: Response,
     next: NextFunction

@@ -32,6 +32,9 @@ import { clearCookie, sendCookie } from "../../utils/JWT";
 import { plainToInstance } from "class-transformer";
 import { ownerLoginResponseDto } from "../../dtos/owner/OwnerLoginResponse.dto";
 import { OwnerGetByFieldResponse } from "../../dtos/owner/OwnerGetByFieldResponse.dto";
+import { OwnerGetSubscriptionsResponse } from "../../dtos/owner/OwnerGetSubscriptionsResponse.dto";
+import { AccountResponse } from "../../dtos/helperDtos/AccountResponse.dto";
+import { OwnerGetAllManagerResponse } from "../../dtos/owner/OwnerGetAllManagerResponse.dto";
 
 class OwnerController implements IOwnerController {
   constructor(
@@ -141,7 +144,7 @@ class OwnerController implements IOwnerController {
     }
   );
 
-  requestOtpHandler = catchAsync(
+  requestOtp = catchAsync(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       const { email } = req.body;
 
@@ -154,7 +157,7 @@ class OwnerController implements IOwnerController {
     }
   );
 
-  resendOtphandler = catchAsync(
+  resendOtp = catchAsync(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       const { email } = req.body;
 
@@ -248,7 +251,7 @@ class OwnerController implements IOwnerController {
     }
   );
 
-  resetPasswordHandler = catchAsync(
+  resetPassword = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { email, password, token } = req.body;
       await this.TokenService.verifyToken(email, token);
@@ -263,7 +266,7 @@ class OwnerController implements IOwnerController {
     }
   );
 
-  forgotPasswordHandler = catchAsync(
+  forgotPassword = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { email } = req.body;
 
@@ -286,21 +289,30 @@ class OwnerController implements IOwnerController {
 
   updateProfile = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { ownerId } = req.body;
-      const updated = await this.OwnerService.updateOwner(ownerId, req.body);
+      const { id } = req.user;
+      const updated = await this.OwnerService.updateOwner(id, req.body);
 
       return sendResponse(
         res,
-        200,
-        "Owner profile has been updated succesfully",
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
         updated
       );
     }
   );
 
-  addManagerHandler = catchAsync(
+  addManager = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { ownerId, email } = req.body;
+      const { id } = req.user;
+      const validOwner = await this.OwnerService.fetchOwnerById(id);
+      if (!validOwner) {
+        throw new AppError(
+          `No owner account found with this id - ${id}`,
+          errorMap[ErrorType.NotFound].code,
+          "warn"
+        );
+      }
+      const { email } = req.body;
       const existingOwner = await this.OwnerService.findOwnerByEmail(email);
       const existingManager = await this.ManagerService.fetchManagerByEmail(
         email
@@ -310,50 +322,49 @@ class OwnerController implements IOwnerController {
         return sendResponse(res, 409, "existing email");
       }
 
-      const validOwner = await this.OwnerService.fetchOwnerById(ownerId);
-      if (!validOwner) {
-        throw new AppError(
-          `No owner account found with this id - ${ownerId}`,
-          404,
-          "warn"
-        );
-      }
       const managerData = await this.ManagerService.createManager({
         ...req.body,
         companyName: validOwner.company.companyName,
+        ownerId: id,
+        companyId: validOwner.company.companyId,
+      });
+
+      const payload = plainToInstance(AccountResponse, managerData, {
+        excludeExtraneousValues: true,
       });
 
       sendResponse(
         res,
-        201,
-        `Manager account created for ${managerData.name} succesfully`,
-        managerData
+        successMap[SuccessType.Created].code,
+        successMap[SuccessType.Created].message,
+        payload
       );
     }
   );
 
-  getAllManagersHandler = catchAsync(
+  getAllManagers = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { id } = req.params;
+      const { id } = req.user;
       const managers = await this.ManagerService.getManagers(id);
-      if (managers) {
-        if (managers.length > 0) {
-          sendResponse(
-            res,
-            200,
-            `Succesfully fetched managers with owner Id ${id}`,
-            managers
-          );
-        } else {
-          sendResponse(res, 204, `Found no managers for the Owner id ${id}`);
+      const payload = plainToInstance(
+        OwnerGetAllManagerResponse,
+        { managers },
+        {
+          excludeExtraneousValues: true,
         }
-      }
+      );
+      sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        payload
+      );
     }
   );
 
-  toggleManagerStatusHandler = catchAsync(
+  toggleManagerStatus = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { ownerId } = req.body;
+      const { id: ownerId } = req.user;
       const { id } = req.params;
       const managerData = await this.ManagerService.findManagerById(id);
       if (managerData && managerData.ownerId == ownerId) {
@@ -362,31 +373,35 @@ class OwnerController implements IOwnerController {
         );
         return sendResponse(
           res,
-          200,
-          `Manager(${managerData.name}) status has been succesfully updated `,
+          successMap[SuccessType.Ok].code,
+          successMap[SuccessType.Ok].message,
           data
         );
       }
     }
   );
 
-  showSubscriptionsHandler = catchAsync(
+  showSubscriptions = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const subscriptions = await this.SubscriptionService.fetchSubscriptions();
-      if (subscriptions.length == 0) {
-        return sendResponse(res, 204, "No subscriptions found");
-      } else {
-        return sendResponse(
-          res,
-          200,
-          `subscriptions found ${subscriptions.length} in total`,
-          subscriptions
-        );
-      }
+      const payload = plainToInstance(
+        OwnerGetSubscriptionsResponse,
+        { subscriptions },
+        { excludeExtraneousValues: true }
+      );
+
+      console.log(`subscriptions `, JSON.stringify(payload, null, 2));
+
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        payload
+      );
     }
   );
 
-  showOwnersHandler = catchAsync(
+  showOwners = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       if (!req.params.id) {
         throw new AppError("No owner id found in path params", 400, "warn");
@@ -489,7 +504,7 @@ class OwnerController implements IOwnerController {
     }
   );
 
-  getOwnersByFieldHandler = catchAsync(
+  getOwnersByField = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       let { field, value } = req.validatedQuery;
 
@@ -530,7 +545,7 @@ class OwnerController implements IOwnerController {
     }
   );
 
-  editManagerHandler = catchAsync(
+  editManager = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const email = req.body.email;
       const name = req.body.name;
@@ -555,7 +570,7 @@ class OwnerController implements IOwnerController {
     }
   );
 
-  fetchDashboardHandler = catchAsync(
+  fetchDashboard = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { ownerId } = req.query;
       if (!ownerId) {

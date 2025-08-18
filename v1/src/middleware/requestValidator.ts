@@ -8,7 +8,9 @@ export const validateBody = (dtoClass: any): RequestHandler => {
     res: Response,
     next: NextFunction
   ): Promise<void> => {
-    const dtoObject = plainToInstance(dtoClass, req.body);
+    const dtoObject = plainToInstance(dtoClass, req.body, {
+      enableImplicitConversion: true,
+    });
 
     const errors = await validate(dtoObject, {
       whitelist: true,

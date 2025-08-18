@@ -7,9 +7,6 @@ export class OwnerAddManager {
   email!: string;
 
   @IsString()
-  role!: string;
-
-  @IsString()
   @Transform(({ value }) => (typeof value === "string" ? value.trim() : ""))
   @IsNotEmpty({ message: "Name cannot be empty" })
   name!: string;

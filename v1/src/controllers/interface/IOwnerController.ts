@@ -25,7 +25,7 @@ export interface IOwnerController {
     next: NextFunction
   ): Promise<void> | void;
 
-  resendOtphandler(
+  resendOtp(
     req: Request,
     res: Response,
     next: NextFunction
@@ -37,25 +37,25 @@ export interface IOwnerController {
     next: NextFunction
   ): Promise<void> | void;
 
-  forgotPasswordHandler(
+  forgotPassword(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> | void;
 
-  addManagerHandler(
+  addManager(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> | void;
 
-  showSubscriptionsHandler(
+  showSubscriptions(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> | void;
 
-  showOwnersHandler(
+  showOwners(
     req: Request,
     res: Response,
     next: NextFunction
@@ -73,19 +73,19 @@ export interface IOwnerController {
     next: NextFunction
   ) => Promise<void> | void;
 
-  requestOtpHandler: (
+  requestOtp: (
     req: Request,
     res: Response,
     next: NextFunction
   ) => Promise<void> | void;
 
-  editManagerHandler: (
+  editManager: (
     req: Request,
     res: Response,
     next: NextFunction
   ) => Promise<void> | void;
 
-  fetchDashboardHandler: (
+  fetchDashboard: (
     req: Request,
     res: Response,
     next: NextFunction

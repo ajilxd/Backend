@@ -8,7 +8,10 @@ import { catchAsync } from "../../errors/catchAsyc";
 import { sendResponse } from "../../utils/sendResponse";
 import { successMap, SuccessType } from "../../constants/response.succesful";
 import AppError from "../../errors/appError";
-import { warn } from "console";
+import { plainToInstance } from "class-transformer";
+import { CreateCompanyResponse } from "../../dtos/company/CreateCompanyResponse.dto";
+import { errorMap, ErrorType } from "../../constants/response.failture";
+import { Types } from "mongoose";
 
 class CompanyController implements ICompanyController {
   private ownerservice: IOwnerService;
@@ -18,43 +21,55 @@ class CompanyController implements ICompanyController {
     this.companyservice = companyservice;
   }
 
-  registerCompanyHandler = catchAsync(
+  registerCompany = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const existingCompany = (
         await this.companyservice.findAllCompanies()
       ).find((i) => i.companyName === req.body.companyName);
       if (existingCompany) {
-        return sendResponse(res, 409, "existing company name");
+        return sendResponse(
+          res,
+          errorMap[ErrorType.conflict].code,
+          "existing company name"
+        );
       }
       const result = await this.companyservice.createCompany(req.body);
-      const updated = await this.ownerservice.updateOwner(req.body.ownerId, {
+      await this.ownerservice.updateOwner(req.body.ownerId, {
         company: {
           companyName: result.companyName,
           companyId: "" + result._id,
         },
       });
+      const payload = plainToInstance(CreateCompanyResponse, result, {
+        excludeExtraneousValues: true,
+      });
       return sendResponse(
         res,
         successMap[SuccessType.Created].code,
         successMap[SuccessType.Created].message,
-        result
+        payload
       );
     }
   );
 
-  updateCompanyHandler = catchAsync(
+  updateCompany = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const updated = await this.companyservice.updateCompany(req.body);
+      const { id } = req.user;
+
+      const updated = await this.companyservice.updateCompany(req.body, id);
+      const payload = plainToInstance(CreateCompanyResponse, updated, {
+        excludeExtraneousValues: true,
+      });
       return sendResponse(
         res,
         successMap[SuccessType.Ok].code,
         successMap[SuccessType.Ok].message,
-        updated
+        payload
       );
     }
   );
 
-  fetchAllCompaniesHandler = catchAsync(
+  fetchAllCompanies = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const companies = await this.companyservice.findAllCompanies();
       if (!companies.length) {
@@ -73,22 +88,25 @@ class CompanyController implements ICompanyController {
     }
   );
 
-  getCompanyHandler = catchAsync(
+  getCompany = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { id } = req.params;
-      if (!id) {
+      const company = await this.companyservice.findCompanyByOwnerId(
+        req.params.id
+      );
+      if (!company) {
         throw new AppError(
-          "Ownerid is required for fetching company details",
-          400
+          errorMap[ErrorType.NotFound].message,
+          errorMap[ErrorType.NotFound].code
         );
       }
-      const company = await this.companyservice.findCompanyByOwnerId(id);
-      console.log("company", company);
+      const payload = plainToInstance(CreateCompanyResponse, company, {
+        excludeExtraneousValues: true,
+      });
       return sendResponse(
         res,
         successMap[SuccessType.Ok].code,
         successMap[SuccessType.Ok].message,
-        company
+        payload
       );
     }
   );
@@ -96,23 +114,21 @@ class CompanyController implements ICompanyController {
   getCompanyMembers = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { id } = req.params;
-      if (!id) {
-        throw new AppError(
-          "Company Id is required to fetch the company members",
-          400,
-          "warn"
-        );
-      }
       const members = await this.companyservice.findAllMembersByCompanyId(id);
       if (members.length > 0) {
         return sendResponse(
           res,
-          200,
-          `succesfully fetched members with ${id} got ${members.length} members`,
+          successMap[SuccessType.Ok].code,
+          successMap[SuccessType.Ok].message,
           members
         );
       } else {
-        return sendResponse(res, 204, "No members found", "warn");
+        return sendResponse(
+          res,
+          successMap[SuccessType.NoContent].code,
+          successMap[SuccessType.NoContent].message,
+          "warn"
+        );
       }
     }
   );

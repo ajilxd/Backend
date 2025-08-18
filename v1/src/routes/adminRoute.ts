@@ -36,7 +36,6 @@ adminRouter.get(
 
 adminRouter.put(
   "/subscription/:id",
-  authMiddleware(["admin"]),
   validateBody(UpdateSubscription),
   SubscriptionController.updateSubscription
 );
