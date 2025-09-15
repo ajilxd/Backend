@@ -12,7 +12,7 @@ class SubscriberRepository
     super(model);
   }
 
-  findByCustomerId(customerId: string) {
+  findByCustomerId(customerId: string): Promise<ISubscriber | null> {
     return this.model.findOne({ customerId, status: "active" }).exec();
   }
 

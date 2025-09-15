@@ -3,7 +3,6 @@ import {
   DesignationRole,
   ISpace,
   SpaceStatus,
-  SpaceVisibility,
   TeamMemberStatus,
 } from "../entities/ISpace";
 
@@ -41,15 +40,20 @@ const TeamMemberSchema = new Schema(
   }
 );
 
-const ManagersSchema = new Schema({
-  managerId: String,
-  managerImage: String,
-  managerName: String,
-  status: {
-    type: String,
-    default: "active",
+const ManagersSchema = new Schema(
+  {
+    managerId: String,
+    managerImage: String,
+    managerName: String,
+    status: {
+      type: String,
+      default: "active",
+    },
   },
-});
+  {
+    _id: false,
+  }
+);
 
 const SpaceSchema: Schema<ISpace> = new Schema(
   {
@@ -66,12 +70,6 @@ const SpaceSchema: Schema<ISpace> = new Schema(
     owner: {
       type: Schema.Types.ObjectId,
       required: true,
-    },
-    visibility: {
-      type: String,
-      enum: SpaceVisibility,
-      required: true,
-      default: SpaceVisibility[0],
     },
     status: {
       type: String,
@@ -96,7 +94,6 @@ const SpaceSchema: Schema<ISpace> = new Schema(
     managers: {
       type: [ManagersSchema],
       required: true,
-      default: [],
     },
   },
   { timestamps: true }

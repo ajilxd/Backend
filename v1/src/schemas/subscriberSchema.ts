@@ -1,7 +1,7 @@
-import mongoose, { model, Schema } from "mongoose";
+import mongoose, { model } from "mongoose";
 import { ISubscriber } from "../entities/ISubscriber";
 
-const subscriberSchema: Schema<ISubscriber> = new mongoose.Schema(
+const subscriberSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -49,10 +49,11 @@ const subscriberSchema: Schema<ISubscriber> = new mongoose.Schema(
     points: Number,
     status: String,
     company: String,
+    stripe_subscription_id: String,
   },
   {
     timestamps: true,
   }
 );
 
-export const Subscriber = model("subscriber", subscriberSchema);
+export const Subscriber = model<ISubscriber>("subscriber", subscriberSchema);

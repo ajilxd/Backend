@@ -1,4 +1,4 @@
-import { ObjectId } from "mongoose";
+import { ObjectId, Document } from "mongoose";
 
 export interface ISubscriber extends Document {
   _id: ObjectId;
@@ -21,4 +21,5 @@ export interface ISubscriber extends Document {
   };
   points: number;
   company: string;
+  stripe_subscription_id: string;
 }

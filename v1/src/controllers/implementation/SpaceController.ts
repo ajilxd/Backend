@@ -13,8 +13,11 @@ import { logger } from "../../utils/logger";
 
 import mongoose from "mongoose";
 
-
 import { Space } from "../../schemas/spaceSchema";
+import { errorMap, ErrorType } from "../../constants/response.failture";
+import { plainToInstance } from "class-transformer";
+import { SpaceResponse } from "../../dtos/helperDtos/SpaceResponse.dto";
+import { successMap, SuccessType } from "../../constants/response.succesful";
 
 class SpaceController implements ISpaceController {
   private SpaceService: ISpaceService;
@@ -26,29 +29,36 @@ class SpaceController implements ISpaceController {
 
   addSpaceHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { ownerId, name } = req.body;
-      if (!ownerId) {
-        throw new AppError("No managerId found", 404, "warn");
-      }
+      const { name } = req.body;
+      const { id: ownerId } = req.user;
+
       const existingSpaceName = await Space.findOne({ name });
 
       if (existingSpaceName) {
-        throw new AppError("duplicates found- company name", 400);
+        throw new AppError(
+          "duplicates found- company name",
+          errorMap[ErrorType.conflict].code,
+          "warn"
+        );
       }
       const data = await this.SpaceService.createSpace(ownerId, req.body);
-      if (data) {
-        sendResponse(res, 201, "Space created succesfully", data);
-      } else {
-        throw new AppError("Failed at adding the space", 500, "error");
-      }
+      const payload = plainToInstance(SpaceResponse, data, {
+        excludeExtraneousValues: true,
+      });
+
+      sendResponse(
+        res,
+        successMap[SuccessType.Created].code,
+        successMap[SuccessType.Created].message,
+        payload
+      );
     }
   );
 
   editSpaceHandler = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { ownerId, spaceId, team } = req.body;
-
-      console.log("req body at space controller", req.body);
+      const { id: ownerId } = req.user;
+      const { spaceId } = req.body;
 
       if (!ownerId || !spaceId) {
         throw new AppError("No ownerId or spaceId provided", 400, "warn");
@@ -59,12 +69,11 @@ class SpaceController implements ISpaceController {
         spaceId,
         req.body
       );
+      const payload = plainToInstance(SpaceResponse, updated, {
+        excludeExtraneousValues: true,
+      });
 
-      if (updated) {
-        sendResponse(res, 200, "Updation went successful", updated);
-      } else {
-        throw new AppError("Internal server error", 500, "error");
-      }
+      sendResponse(res, 200, "Updation went successful", payload);
     }
   );
 

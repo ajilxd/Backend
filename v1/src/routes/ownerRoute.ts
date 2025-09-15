@@ -11,7 +11,6 @@ import { OwnerRegister } from "../dtos/owner/OwnerRegister.dto";
 import { OwnerForgetpassword } from "../dtos/owner/OwnerForgetPassword.dto";
 import { OwnerResetPassword } from "../dtos/owner/OwnerResetPassword.dto";
 import { OwnerAddManager } from "../dtos/owner/OwnerAddManager.dto";
-import { OwnerGetByFieldquery } from "../dtos/owner/OwnerGetByFieldquery.dto";
 import { validateQuery } from "../middleware/requestQueryValidator";
 import { CreateCompany } from "../dtos/company/CreateCompany.dto";
 export const ownerRouter = Router();
@@ -57,14 +56,7 @@ ownerRouter.post(
   validateBody(OwnerResetPassword),
   OwnerController.resetPassword
 );
-
-ownerRouter.get(
-  "/",
-  authMiddleware(["owner"]),
-  validateQuery(OwnerGetByFieldquery),
-  OwnerController.getOwnersByField
-);
-
+// needs to implement dto here
 ownerRouter.put(
   "/profile",
   authMiddleware(["owner"]),
@@ -97,13 +89,9 @@ ownerRouter.get(
   authMiddleware(["owner"]),
   OwnerController.showSubscriptions
 );
+ownerRouter.get("/", authMiddleware(["owner"]), OwnerController.fetchOwner);
 ownerRouter.get(
-  "/owners/:id",
-  authMiddleware(["owner"]),
-  OwnerController.showOwners
-);
-ownerRouter.get(
-  "/subscription/:id",
+  "/subscription",
   authMiddleware(["owner"]),
   OwnerController.getOwnerSubscription
 );
@@ -115,7 +103,7 @@ ownerRouter.get(
 
 // company
 ownerRouter.get(
-  "/company/:id",
+  "/company",
   authMiddleware(["owner"]),
   CompanyController.getCompany
 );

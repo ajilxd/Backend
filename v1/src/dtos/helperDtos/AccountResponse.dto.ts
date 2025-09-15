@@ -1,4 +1,4 @@
-import { Expose } from "class-transformer";
+import { Expose, Transform } from "class-transformer";
 
 export class AccountResponse {
   @Expose()
@@ -18,4 +18,8 @@ export class AccountResponse {
 
   @Expose()
   isBlocked!: string;
+
+  @Expose()
+  @Transform(({ obj }) => obj._id.toString())
+  _id!: string;
 }

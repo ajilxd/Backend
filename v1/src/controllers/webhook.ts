@@ -163,6 +163,7 @@ export const handleWebhook = async (
             : (new Date().setMonth(new Date().getMonth() + 1) as any),
           points,
           company: ownerDb.company.companyName,
+          stripe_subscription_id: subscription,
         });
         const owner = await ownerService.updateOwner(ownerId, {
           subscription: subobj,

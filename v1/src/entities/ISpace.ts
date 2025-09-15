@@ -21,10 +21,6 @@ export type SpaceStatusType = "active" | "archived" | "deleted";
 
 export const SpaceStatus = ["active", "archived", "deleted"] as const;
 
-export type SpaceVisibilityType = "private" | "team" | "public";
-
-export const SpaceVisibility = ["private", "team", "public"] as const;
-
 export type TeamMember = {
   userId: ObjectId;
   role: MemberRoleType;
@@ -55,7 +51,6 @@ export interface ISpace extends Document {
   createdAt: Date;
   updatedAt: Date;
 
-  visibility: SpaceVisibilityType;
   status: SpaceStatusType;
 
   companyName: string;

@@ -55,7 +55,7 @@ export interface IOwnerController {
     next: NextFunction
   ): Promise<void> | void;
 
-  showOwners(
+  fetchOwner(
     req: Request,
     res: Response,
     next: NextFunction

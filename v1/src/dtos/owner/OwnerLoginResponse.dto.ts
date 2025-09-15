@@ -61,4 +61,22 @@ export class ownerLoginResponseDto {
 
   @Expose()
   accessToken!: string;
+
+  @Expose()
+  companyId!: string;
+
+  @Expose()
+  companyName!: string;
+
+  @Expose()
+  bio!: string;
+
+  @Expose()
+  image!: string;
+
+  @Expose()
+  @Transform(({ value }) =>
+    value instanceof Date ? value.toISOString() : value
+  )
+  createdAt!: string;
 }

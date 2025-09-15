@@ -9,9 +9,8 @@ import { sendResponse } from "../../utils/sendResponse";
 import { successMap, SuccessType } from "../../constants/response.succesful";
 import AppError from "../../errors/appError";
 import { plainToInstance } from "class-transformer";
-import { CreateCompanyResponse } from "../../dtos/company/CreateCompanyResponse.dto";
 import { errorMap, ErrorType } from "../../constants/response.failture";
-import { Types } from "mongoose";
+import { CompanyResponse } from "../../dtos/helperDtos/CompanyResponse.dto";
 
 class CompanyController implements ICompanyController {
   private ownerservice: IOwnerService;
@@ -23,6 +22,7 @@ class CompanyController implements ICompanyController {
 
   registerCompany = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
+      const { id: ownerId } = req.user;
       const existingCompany = (
         await this.companyservice.findAllCompanies()
       ).find((i) => i.companyName === req.body.companyName);
@@ -34,13 +34,13 @@ class CompanyController implements ICompanyController {
         );
       }
       const result = await this.companyservice.createCompany(req.body);
-      await this.ownerservice.updateOwner(req.body.ownerId, {
+      await this.ownerservice.updateOwner(ownerId, {
         company: {
           companyName: result.companyName,
           companyId: "" + result._id,
         },
       });
-      const payload = plainToInstance(CreateCompanyResponse, result, {
+      const payload = plainToInstance(CompanyResponse, result, {
         excludeExtraneousValues: true,
       });
       return sendResponse(
@@ -57,7 +57,7 @@ class CompanyController implements ICompanyController {
       const { id } = req.user;
 
       const updated = await this.companyservice.updateCompany(req.body, id);
-      const payload = plainToInstance(CreateCompanyResponse, updated, {
+      const payload = plainToInstance(CompanyResponse, updated, {
         excludeExtraneousValues: true,
       });
       return sendResponse(
@@ -72,13 +72,6 @@ class CompanyController implements ICompanyController {
   fetchAllCompanies = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const companies = await this.companyservice.findAllCompanies();
-      if (!companies.length) {
-        return sendResponse(
-          res,
-          successMap[SuccessType.NoContent].code,
-          successMap[SuccessType.NoContent].message
-        );
-      }
       return sendResponse(
         res,
         successMap[SuccessType.Ok].code,
@@ -90,16 +83,15 @@ class CompanyController implements ICompanyController {
 
   getCompany = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      const company = await this.companyservice.findCompanyByOwnerId(
-        req.params.id
-      );
+      const { id: ownerId } = req.user;
+      const company = await this.companyservice.findCompanyByOwnerId(ownerId);
       if (!company) {
         throw new AppError(
           errorMap[ErrorType.NotFound].message,
           errorMap[ErrorType.NotFound].code
         );
       }
-      const payload = plainToInstance(CreateCompanyResponse, company, {
+      const payload = plainToInstance(CompanyResponse, company, {
         excludeExtraneousValues: true,
       });
       return sendResponse(

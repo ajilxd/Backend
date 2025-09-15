@@ -217,13 +217,17 @@ class UserController implements IUserController {
         "" + userData.ownerId
       );
 
+      const ownerSubscriber = await this.SubscriberService.findByCustomerId(
+        "" + userData.ownerId
+      );
+
       if (!ownerData) {
         throw new AppError("Failed to find the owners data", 404, "warn");
       }
 
       const stripeSubscriptionData =
         await stripeInstance.subscriptions.retrieve(
-          ownerData.subscription?.stripe_subscription_id!
+          ownerSubscriber?.stripe_subscription_id!
         );
 
       if (subscriptionData) {

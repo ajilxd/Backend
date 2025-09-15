@@ -319,9 +319,13 @@ class managerController implements IManagerController {
         throw new AppError("Failed to find the owners data", 404, "warn");
       }
 
+      const ownerSubscriber = await this.SubscriberService.findByCustomerId(
+        "" + managerData.ownerId
+      );
+
       const stripeSubscriptionData =
         await stripeInstance.subscriptions.retrieve(
-          ownerData.subscription?.stripe_subscription_id!
+          ownerSubscriber?.stripe_subscription_id!
         );
       if (subscriberData) {
         subscriptionStats.name = subscriberData.name;

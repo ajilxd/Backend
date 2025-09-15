@@ -158,7 +158,7 @@ class SpaceService implements ISpaceService {
         if (!manager) {
           throw new AppError(
             "Issues at storing space at adding manager data -No manager found",
-            500
+            errorMap[ErrorType.ServerError].code
           );
         }
         return {
@@ -179,8 +179,7 @@ class SpaceService implements ISpaceService {
       } else {
         throw new AppError(
           "Failed to update the space - Internal server error occured",
-          500,
-          "error"
+          errorMap[ErrorType.ServerError].code
         );
       }
     }

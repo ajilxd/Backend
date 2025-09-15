@@ -31,10 +31,11 @@ import { successMap, SuccessType } from "../../constants/response.succesful";
 import { clearCookie, sendCookie } from "../../utils/JWT";
 import { plainToInstance } from "class-transformer";
 import { ownerLoginResponseDto } from "../../dtos/owner/OwnerLoginResponse.dto";
-import { OwnerGetByFieldResponse } from "../../dtos/owner/OwnerGetByFieldResponse.dto";
 import { OwnerGetSubscriptionsResponse } from "../../dtos/owner/OwnerGetSubscriptionsResponse.dto";
 import { AccountResponse } from "../../dtos/helperDtos/AccountResponse.dto";
 import { OwnerGetAllManagerResponse } from "../../dtos/owner/OwnerGetAllManagerResponse.dto";
+import { ISubscriber } from "../../entities/ISubscriber";
+import { OwnerSubscriptionResponse } from "../../dtos/owner/OwnerSubscriptionResponse.dto";
 
 class OwnerController implements IOwnerController {
   constructor(
@@ -116,6 +117,8 @@ class OwnerController implements IOwnerController {
         ownerLoginResponseDto,
         {
           ...account.toObject(),
+          companyId: account.company.companyId,
+          companyName: account.company.companyName,
           subscription,
           accessToken,
         },
@@ -194,6 +197,8 @@ class OwnerController implements IOwnerController {
           ownerLoginResponseDto,
           {
             ...account.toObject(),
+            companyId: account.company.companyId,
+            companyName: account.company.companyName,
             subscription,
             accessToken,
           },
@@ -365,8 +370,11 @@ class OwnerController implements IOwnerController {
   toggleManagerStatus = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
       const { id: ownerId } = req.user;
-      const { id } = req.params;
-      const managerData = await this.ManagerService.findManagerById(id);
+      const { id: managerId } = req.params;
+      const managerData = await this.ManagerService.findManagerById(managerId);
+      const payload = plainToInstance(AccountResponse, managerData, {
+        excludeExtraneousValues: true,
+      });
       if (managerData && managerData.ownerId == ownerId) {
         const data = await this.ManagerService.toggleManagerStatus(
           managerData.email
@@ -375,7 +383,7 @@ class OwnerController implements IOwnerController {
           res,
           successMap[SuccessType.Ok].code,
           successMap[SuccessType.Ok].message,
-          data
+          payload
         );
       }
     }
@@ -390,8 +398,6 @@ class OwnerController implements IOwnerController {
         { excludeExtraneousValues: true }
       );
 
-      console.log(`subscriptions `, JSON.stringify(payload, null, 2));
-
       return sendResponse(
         res,
         successMap[SuccessType.Ok].code,
@@ -401,78 +407,66 @@ class OwnerController implements IOwnerController {
     }
   );
 
-  showOwners = catchAsync(
+  fetchOwner = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      if (!req.params.id) {
-        throw new AppError("No owner id found in path params", 400, "warn");
-      }
-      const owner = await this.OwnerService.findOwnerByEmail(req.params.id);
+      const { id: ownerId } = req.user;
+
+      const owner = await this.OwnerService.fetchOwnerById(ownerId);
+
       if (!owner) {
         return sendResponse(
           res,
-          400,
-          `No owner account found with this id - ${req.params.id}`
+          errorMap[ErrorType.NotFound].code,
+          errorMap[ErrorType.NotFound].message
         );
       }
-      return sendResponse(res, 200, `${owner.name}'s data`, owner);
+      const payload = plainToInstance(ownerLoginResponseDto, owner, {
+        excludeExtraneousValues: true,
+      });
+      return sendResponse(
+        res,
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        payload
+      );
     }
   );
 
   getOwnerSubscription = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-      if (!req.params.id) {
-        throw new AppError("No owner id found at path params", 400, "warn");
-      }
+      const { id: ownerId } = req.user;
+      const OwnerSubscriber = await this.SubscriberService.findByCustomerId(
+        ownerId
+      );
 
-      const ownerData = await this.OwnerService.fetchOwnerById(req.params.id);
-      if (!ownerData) {
+      if (!OwnerSubscriber) {
         throw new AppError(
-          `No owner account found with this id ${req.params.id}`,
-          404,
+          "No subscription found for the Owner",
+          errorMap[ErrorType.NotFound].code,
           "warn"
         );
       }
-
-      if (!ownerData.subscription) {
-        throw new AppError("No subscription found for the Owner", 404, "warn");
-      }
-      if (!ownerData.subscription.stripe_subscription_id) {
-        throw new AppError(
-          "failed to find the stripe subscription id",
-          500,
-          "warn"
-        );
-      }
-
-      const plainOwnerData = ownerData.toObject();
-
-      const subscriptionData =
-        await this.SubscriptionService.findSubscriptionById(
-          ownerData.subscription.subscription_id!
-        );
-
+      const plainObj = OwnerSubscriber.toObject();
       const stripeSubscriptionData =
         await stripeInstance.subscriptions.retrieve(
-          ownerData.subscription.stripe_subscription_id
+          OwnerSubscriber.stripe_subscription_id
         );
 
-      const subscription = plainOwnerData.subscription;
       const result = {
-        ...subscription,
+        ...plainObj,
         status: stripeSubscriptionData.status,
-        cancel_at_period_end: new Date(
-          stripeSubscriptionData.current_period_end * 1000
-        ),
-        cancel_at: new Date(stripeSubscriptionData.cancel_at! * 1000),
-        canceled_at: new Date(stripeSubscriptionData.canceled_at! * 1000),
-        features: subscriptionData.features,
+        features: OwnerSubscriber.features,
       };
+
+      const payload = plainToInstance(OwnerSubscriptionResponse, result, {
+        excludeExtraneousValues: true,
+      });
 
       return sendResponse(
         res,
-        200,
-        `Owner subscription data retrived succesfully`,
-        result
+        successMap[SuccessType.Ok].code,
+        successMap[SuccessType.Ok].message,
+        payload
       );
     }
   );
@@ -500,47 +494,6 @@ class OwnerController implements IOwnerController {
         200,
         `Succesfully fetched invoices data for the owner id - ${id}`,
         { totalPage, invoices: paginatedData }
-      );
-    }
-  );
-
-  getOwnersByField = catchAsync(
-    async (req: Request, res: Response, next: NextFunction) => {
-      let { field, value } = req.validatedQuery;
-
-      const allowedFields = ["_id"];
-      if (!allowedFields.includes("" + field)) {
-        throw new AppError(
-          "Invalid query",
-          errorMap[ErrorType.BadRequest].code
-        );
-      }
-
-      const query: Record<string, mongoose.Types.ObjectId> = {};
-      query[field] = new mongoose.Types.ObjectId(value);
-
-      const result = await this.OwnerService.getOwnersQuery(query);
-
-      if (!result.length) {
-        throw new AppError(
-          errorMap[ErrorType.NotFound].message,
-          errorMap[ErrorType.NotFound].code
-        );
-      }
-
-      const payload = plainToInstance(
-        OwnerGetByFieldResponse,
-        { ...result[0].toObject(), role: "owner" },
-        {
-          excludeExtraneousValues: true,
-        }
-      );
-
-      return sendResponse(
-        res,
-        successMap[SuccessType.Ok].code,
-        successMap[SuccessType.Ok].message,
-        payload
       );
     }
   );

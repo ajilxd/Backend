@@ -1,8 +1,6 @@
-import { Expose, Type } from "class-transformer";
+import { Expose } from "class-transformer";
 
-type Industries = string[];
-
-export class CreateCompanyResponse {
+export class CompanyResponse {
   @Expose()
   companyName!: string;
 
